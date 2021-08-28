@@ -8,7 +8,8 @@ def tesseract_example():
 
     rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-    text = pytesseract.image_to_string(rgb)
+    config = '--tessdata-dir resources/tessdata'
+    text = pytesseract.image_to_string(rgb, lang='por', config=config)
 
     print(text)
 
