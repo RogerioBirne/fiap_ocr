@@ -25,21 +25,21 @@ def invert_gray_color(gray):
     return 255 - gray
 
 
-def filter_binary_threshold(img, min=0, max=255):
+def filter_color_binary_threshold(img, min=0, max=255):
     __, result = cv2.threshold(img, min, max, cv2.THRESH_BINARY)
     return result
 
 
-def filter_otsu_threshold(img, min=0, max=255):
+def filter_color_otsu_threshold(img, min=0, max=255):
     __, result = cv2.threshold(img, min, max, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
     return result
 
 
-def filter_mean_adaptive_threshold(img, block_size=11, subtracted=9):
+def filter_color_mean_adaptive_threshold(img, block_size=11, subtracted=9):
     return cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, block_size, subtracted)
 
 
-def filter_gaussian_adaptive_threshold(img, block_size=11, subtracted=9):
+def filter_color_gaussian_adaptive_threshold(img, block_size=11, subtracted=9):
     return cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, block_size, subtracted)
 
 
@@ -53,24 +53,40 @@ def reduce(img, percent):
     return cv2.resize(img, None, fx=factor, fy=factor, interpolation=cv2.INTER_AREA)
 
 
-def filter_erode(img, sensitivity=3):
+def filter_noise_erode(img, sensitivity=3):
     return cv2.erode(img, np.ones((sensitivity, sensitivity), np.uint8))
 
 
-def filter_dilate(img, sensitivity=3):
+def filter_noise_dilate(img, sensitivity=3):
     return cv2.dilate(img, np.ones((sensitivity, sensitivity), np.uint8))
 
 
-def filter_opening(img, sensitivity=3):
-    return filter_dilate(filter_erode(img, sensitivity), sensitivity)
+def filter_noise_opening(img, sensitivity=3):
+    return filter_noise_dilate(filter_noise_erode(img, sensitivity), sensitivity)
 
 
-def filter_closure(img, sensitivity=3):
-    return filter_erode(filter_dilate(img, sensitivity), sensitivity)
+def filter_noise_closure(img, sensitivity=3):
+    return filter_noise_erode(filter_noise_dilate(img, sensitivity), sensitivity)
 
 
-def convert_image_to_data(img):
-    return pytesseract.image_to_data(img, lang='eng', config=TESSERACT_CONF, output_type=Output.DICT)
+def filter_blur(img, size=5):  # Good for images
+    return cv2.blur(img, (size, size))
+
+
+def filter_blur_gaussian(img, size=5):  # Good for images
+    return cv2.GaussianBlur(img, (size, size), 0)
+
+
+def filter_blur_median(img, size=5):  # Good for text
+    return cv2.medianBlur(img, size)
+
+
+def filter_blur_bilateral(img):  # Good for text
+    return cv2.bilateralFilter(img, 15, 40, 45)
+
+
+def convert_image_to_data(img, lang='por'):
+    return pytesseract.image_to_data(img, lang=lang, config=TESSERACT_CONF, output_type=Output.DICT)
 
 
 def print_ocr_on_image(img, results):
