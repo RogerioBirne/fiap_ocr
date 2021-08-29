@@ -1,5 +1,4 @@
 from src.tesseract.utils.utils import *
-from imutils.object_detection import non_max_suppression
 
 
 def tesseract_example():
