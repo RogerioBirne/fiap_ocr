@@ -3,7 +3,7 @@ from PIL import Image
 
 
 def tesseract_example():
-    img = Image.open('resources/Imagens/livro01.jpg')
+    img = Image.open('../../../resources/Imagens/livro01.jpg')
 
     # plt.imshow(img)  # Show image
     # plt.waitforbuttonpress()  # wait for any press

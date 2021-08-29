@@ -6,9 +6,9 @@ from PIL import ImageDraw
 import pprint
 
 WINDOW_NAME = 'displaymywindows'
-CALIBRI_FONT = 'resources/Fontes/calibri.ttf'
+CALIBRI_FONT = '../../../resources/Fontes/calibri.ttf'
 MIN_CONF = 90
-TESSERACT_CONF = '--tessdata-dir resources/tessdata'  # Config with language portuguese
+TESSERACT_CONF = '--tessdata-dir ../../../resources/tessdata'  # Config with language portuguese
 
 def show_image(img):
     cv2.imshow(WINDOW_NAME, img)  # Show image

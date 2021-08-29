@@ -9,27 +9,26 @@ import pprint
 
 
 def tesseract_example():
-    font = 'resources/Fontes/calibri.ttf'
+    font = '../../../resources/Fontes/calibri.ttf'
 
-    img = cv2.imread('resources/Imagens/teste02.jpg')  # Open Image
-    rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert image to rgb
+    img = cv2.imread('../../../resources/Imagens/img-process.jpg')  # Open Image
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # Convert image to gray
 
-    config = '--tessdata-dir resources/tessdata'  # Config with language portuguese
-    results = pytesseract.image_to_data(rgb, lang='por', config=config, output_type=Output.DICT)  # Convert Image to Text from portuguese
+    config = '--tessdata-dir ../../../resources/tessdata'  # Config with language portuguese
+    results = pytesseract.image_to_data(gray, lang='eng', config=config, output_type=Output.DICT)
 
     pretty = pprint.PrettyPrinter(width=200)
     pretty.pprint(results)
 
-    min_conf = 40
+    min_conf = 90
 
-    rgb_copy = rgb.copy()
+    rgb_copy = gray.copy()
     for index in range(0, len(results['text'])):
         conf = results['conf'][index]
 
         if int(conf) > min_conf:
             x, y, text, rgb_copy = text_box(results, rgb_copy, index)
-            rgb_copy = write_text(text, x, y, rgb_copy, font, font_length=32)
-
+            rgb_copy = write_text(text, x, y, rgb_copy, font, font_length=12)
 
     cv2.imshow('displaymywindows', rgb_copy)  # Show image
     cv2.setWindowProperty('displaymywindows', cv2.WND_PROP_TOPMOST, 1)

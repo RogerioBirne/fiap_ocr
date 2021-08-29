@@ -1,10 +1,10 @@
 import pytesseract
 from pytesseract import Output
-from utils import *
+from src.tesseract.utils.utils import *
 
 
 def tesseract_example():
-    img = cv2.imread('resources/Imagens/trecho-livro.jpg')  # Open Image
+    img = cv2.imread('../../../resources/Imagens/trecho-livro.jpg')  # Open Image
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # Convert image to gray
     val, thresh = cv2.threshold(gray, 140, 255, cv2.THRESH_BINARY)
 
