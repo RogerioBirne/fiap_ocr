@@ -4,11 +4,49 @@ from PIL import Image
 from PIL import ImageFont
 from PIL import ImageDraw
 import pprint
+import pytesseract
+from pytesseract import Output
 
 WINDOW_NAME = 'displaymywindows'
 CALIBRI_FONT = '../../../resources/Fontes/calibri.ttf'
 MIN_CONF = 90
 TESSERACT_CONF = '--tessdata-dir ../../../resources/tessdata'  # Config with language portuguese
+
+
+def read_file_as_bgr(file):
+    return cv2.imread(file)  # Open Image
+
+
+def convert_image_to_gray(img):
+    return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # Convert image to gray
+
+
+def invert_gray_color(gray):
+    return 255 - gray
+
+
+def filter_binary_threshold(img, min=0, max=255):
+    __, result = cv2.threshold(img, min, max, cv2.THRESH_BINARY)
+    return result
+
+
+def filter_otsu_threshold(img, min=0, max=255):
+    __, result = cv2.threshold(img, min, max, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+    return result
+
+
+def filter_mean_adaptive_threshold(img, block_size=11, subtracted=9):
+    return cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, block_size, subtracted)
+
+
+def filter_gaussian_adaptive_threshold(img, block_size=11, subtracted=9):
+    return cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, block_size, subtracted)
+
+
+
+
+def convert_image_to_data(img):
+    return pytesseract.image_to_data(img, lang='por', config=TESSERACT_CONF, output_type=Output.DICT)
 
 
 def print_ocr_on_image(img, results):
