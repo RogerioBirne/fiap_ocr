@@ -1,4 +1,3 @@
-import cv2
 import pytesseract
 from pytesseract import Output
 from src.tesseract.utils.utils import *
@@ -7,7 +6,6 @@ from src.tesseract.utils.utils import *
 def tesseract_example():
     img = cv2.imread('../../../resources/Imagens/livro02.jpg')  # Open Image
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # Convert image to gray
-    val, otsu = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
 
     adapt_media = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 9)
 

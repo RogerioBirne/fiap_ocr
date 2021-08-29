@@ -10,17 +10,7 @@ def tesseract_example():
 
     results = pytesseract.image_to_data(otsu, lang='eng', config=TESSERACT_CONF, output_type=Output.DICT)
 
-    pretty_print_dict(results)
-
-    rgb_copy = otsu.copy()
-    for index in range(0, len(results['text'])):
-        conf = results['conf'][index]
-
-        if int(conf) > MIN_CONF:
-            x, y, text, rgb_copy = text_box(results, rgb_copy, index)
-            rgb_copy = write_text(text, x, y, rgb_copy, CALIBRI_FONT, font_length=12)
-
-    show_image(rgb_copy)
+    print_ocr_on_image(otsu, results)
 
 
 if __name__ == '__main__':

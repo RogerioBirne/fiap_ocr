@@ -10,6 +10,21 @@ CALIBRI_FONT = '../../../resources/Fontes/calibri.ttf'
 MIN_CONF = 90
 TESSERACT_CONF = '--tessdata-dir ../../../resources/tessdata'  # Config with language portuguese
 
+
+def print_ocr_on_image(img, results):
+    pretty_print_dict(results)
+
+    img_copy = img.copy()
+    for index in range(0, len(results['text'])):
+        conf = results['conf'][index]
+
+        if int(conf) > MIN_CONF:
+            x, y, text, img_copy = text_box(results, img_copy, index)
+            img_copy = write_text(text, x, y, img_copy, CALIBRI_FONT, font_length=12)
+
+    show_image(img_copy)
+
+
 def show_image(img):
     cv2.imshow(WINDOW_NAME, img)  # Show image
     cv2.setWindowProperty(WINDOW_NAME, cv2.WND_PROP_TOPMOST, 1)
