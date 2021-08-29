@@ -43,6 +43,10 @@ def filter_color_gaussian_adaptive_threshold(img, block_size=11, subtracted=9):
     return cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, block_size, subtracted)
 
 
+def resize(img, wight, height):
+    return cv2.resize(img, (wight, height))
+
+
 def enlarge(img, percent):
     factor = 1 + (percent/100)
     return cv2.resize(img, None, fx=factor, fy=factor, interpolation=cv2.INTER_CUBIC)

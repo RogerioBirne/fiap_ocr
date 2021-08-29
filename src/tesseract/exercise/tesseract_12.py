@@ -1,4 +1,4 @@
-from src.tesseract.utils.utils import *
+from src.tesseract.tesseract_functions import *
 
 
 def tesseract_example():
