@@ -1,5 +1,3 @@
-import cv2
-
 from src.tesseract.utils.utils import *
 
 

@@ -9,7 +9,7 @@ from pytesseract import Output
 
 WINDOW_NAME = 'displaymywindows'
 CALIBRI_FONT = '../../../resources/Fontes/calibri.ttf'
-MIN_CONF = 90
+MIN_CONF = 50
 TESSERACT_CONF = '--tessdata-dir ../../../resources/tessdata'  # Config with language portuguese
 
 
@@ -43,10 +43,34 @@ def filter_gaussian_adaptive_threshold(img, block_size=11, subtracted=9):
     return cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, block_size, subtracted)
 
 
+def enlarge(img, percent):
+    factor = 1 + (percent/100)
+    return cv2.resize(img, None, fx=factor, fy=factor, interpolation=cv2.INTER_CUBIC)
+
+
+def reduce(img, percent):
+    factor = 1 - (percent/100)
+    return cv2.resize(img, None, fx=factor, fy=factor, interpolation=cv2.INTER_AREA)
+
+
+def filter_erode(img, sensitivity=3):
+    return cv2.erode(img, np.ones((sensitivity, sensitivity), np.uint8))
+
+
+def filter_dilate(img, sensitivity=3):
+    return cv2.dilate(img, np.ones((sensitivity, sensitivity), np.uint8))
+
+
+def filter_opening(img, sensitivity=3):
+    return filter_dilate(filter_erode(img, sensitivity), sensitivity)
+
+
+def filter_closure(img, sensitivity=3):
+    return filter_erode(filter_dilate(img, sensitivity), sensitivity)
 
 
 def convert_image_to_data(img):
-    return pytesseract.image_to_data(img, lang='por', config=TESSERACT_CONF, output_type=Output.DICT)
+    return pytesseract.image_to_data(img, lang='eng', config=TESSERACT_CONF, output_type=Output.DICT)
 
 
 def print_ocr_on_image(img, results):
