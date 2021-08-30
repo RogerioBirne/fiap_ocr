@@ -1,9 +1,10 @@
 import pytesseract
 from PIL import Image
+from src import RESOURCES_PATH
 
 
 def tesseract_example():
-    img = Image.open('../../../resources/Imagens/livro01.jpg')
+    img = Image.open(RESOURCES_PATH + '/Imagens/livro01.jpg')
 
     # plt.imshow(img)  # Show image
     # plt.waitforbuttonpress()  # wait for any press

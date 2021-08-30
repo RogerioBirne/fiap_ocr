@@ -1,8 +1,9 @@
 from src.tesseract.tesseract_functions import *
+from src import RESOURCES_PATH
 
 
 def tesseract_example():
-    img = read_file_as_bgr('../../../resources/Imagens/texto-opencv2.jpg')
+    img = read_file_as_bgr(RESOURCES_PATH + '/Imagens/texto-opencv2.jpg')
     img = convert_image_to_gray(img)
     img = filter_noise_closure(img, 5)
     img = invert_gray_color(img)

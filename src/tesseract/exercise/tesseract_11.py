@@ -1,8 +1,9 @@
 from src.tesseract.tesseract_functions import *
+from src import RESOURCES_PATH
 
 
 def tesseract_example():
-    img = cv2.imread('../../../resources/Imagens/livro_adaptativa.jpg')  # Open Image
+    img = cv2.imread(RESOURCES_PATH + '/Imagens/livro_adaptativa.jpg')  # Open Image
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # Convert image to gray
 
     adapt_media_gauss = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 9)

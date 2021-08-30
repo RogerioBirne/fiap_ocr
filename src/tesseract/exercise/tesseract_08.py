@@ -1,8 +1,9 @@
 from src.tesseract.tesseract_functions import *
+from src import RESOURCES_PATH
 
 
 def tesseract_example():
-    img = cv2.imread('../../../resources/Imagens/trecho-livro.jpg')  # Open Image
+    img = cv2.imread(RESOURCES_PATH + '/Imagens/trecho-livro.jpg')  # Open Image
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # Convert image to gray
     val, thresh = cv2.threshold(gray, 140, 255, cv2.THRESH_BINARY)
 

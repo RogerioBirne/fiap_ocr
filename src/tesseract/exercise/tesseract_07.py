@@ -6,15 +6,16 @@ from PIL import Image
 from PIL import ImageFont
 from PIL import ImageDraw
 import pprint
+from src import RESOURCES_PATH
 
 
 def tesseract_example():
-    font = '../../../resources/Fontes/calibri.ttf'
+    font = RESOURCES_PATH + '/Fontes/calibri.ttf'
 
-    img = cv2.imread('../../../resources/Imagens/img-process.jpg')  # Open Image
+    img = cv2.imread(RESOURCES_PATH + '/Imagens/img-process.jpg')  # Open Image
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # Convert image to gray
 
-    config = '--tessdata-dir ../../../resources/tessdata'  # Config with language portuguese
+    config = '--tessdata-dir {}/tessdata'.format(RESOURCES_PATH)  # Config with language portuguese
     results = pytesseract.image_to_data(gray, lang='eng', config=config, output_type=Output.DICT)
 
     pretty = pprint.PrettyPrinter(width=200)

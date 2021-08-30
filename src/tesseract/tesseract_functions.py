@@ -6,11 +6,12 @@ from PIL import ImageDraw
 import pprint
 import pytesseract
 from pytesseract import Output
+from src import RESOURCES_PATH
 
 WINDOW_NAME = 'displaymywindows'
-CALIBRI_FONT = '../../../resources/Fontes/calibri.ttf'
+CALIBRI_FONT = RESOURCES_PATH + '/Fontes/calibri.ttf'
 MIN_CONF = 50
-TESSERACT_CONF = '--tessdata-dir ../../../resources/tessdata'  # Config with language portuguese
+TESSERACT_CONF = '--tessdata-dir {}/tessdata'.format(RESOURCES_PATH)  # Config with language portuguese
 
 
 def read_file_as_bgr(file):
@@ -43,8 +44,8 @@ def filter_color_gaussian_adaptive_threshold(img, block_size=11, subtracted=9):
     return cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, block_size, subtracted)
 
 
-def resize(img, wight, height):
-    return cv2.resize(img, (wight, height))
+def resize(img, height, wight):
+    return cv2.resize(img, (height, wight))
 
 
 def enlarge(img, percent):
@@ -89,18 +90,22 @@ def filter_blur_bilateral(img):  # Good for text
     return cv2.bilateralFilter(img, 15, 40, 45)
 
 
+def convert_image_to_string(img, lang='por'):
+    return pytesseract.image_to_string(img, lang=lang, config=TESSERACT_CONF, output_type=Output.DICT)
+
+
 def convert_image_to_data(img, lang='por'):
     return pytesseract.image_to_data(img, lang=lang, config=TESSERACT_CONF, output_type=Output.DICT)
 
 
-def print_ocr_on_image(img, results):
+def print_ocr_on_image(img, results, min_conf=MIN_CONF):
     pretty_print_dict(results)
 
     img_copy = img.copy()
     for index in range(0, len(results['text'])):
         conf = results['conf'][index]
 
-        if int(conf) > MIN_CONF:
+        if int(conf) > min_conf:
             x, y, text, img_copy = text_box(results, img_copy, index)
             img_copy = write_text(text, x, y, img_copy, CALIBRI_FONT, font_length=12)
 
