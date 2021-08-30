@@ -5,13 +5,14 @@ from imutils.object_detection import non_max_suppression
 from src import RESOURCES_PATH
 
 _EAST_MIN_CONF = 0.9
+_EAST_OVERLAP_THRESH = 0.3
 _EAST_LAYER_NAMES = ['feature_fusion/Conv_7/Sigmoid', 'feature_fusion/concat_3']
 _EAST_DETECTOR_DATASET = RESOURCES_PATH + '/Modelos/frozen_east_text_detection.pb'
 _EAST_BASE_SIZE = 32
-_EAST_ENLARGE_FACTOR = 5
+_EAST_ENLARGE_FACTOR = 7
 
 
-def image_to_detections(img, min_conf=_EAST_MIN_CONF):
+def image_to_detections(img, min_conf=_EAST_MIN_CONF, overlapThresh=_EAST_OVERLAP_THRESH):
     img = enlarge(img, _EAST_ENLARGE_FACTOR)
     img = convert_image_to_gray(img)
     img = filter_color_otsu_threshold(img)
@@ -47,7 +48,7 @@ def image_to_detections(img, min_conf=_EAST_MIN_CONF):
                 boxes.append((start_x, start_y, end_x, end_y))
 
     print('boxes: ', len(boxes))
-    detections = non_max_suppression(np.array(boxes), probs=trusts)
+    detections = non_max_suppression(np.array(boxes), probs=trusts, overlapThresh=overlapThresh)
     print('detections: ', len(detections))
 
     return [(int(start_x / _EAST_ENLARGE_FACTOR),

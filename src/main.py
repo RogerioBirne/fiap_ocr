@@ -15,9 +15,9 @@ def tesseract_ocr():
 def east_ocr():
     img = read_file_as_bgr(RESOURCES_PATH + '/Imagens/fiscal_docs/example_2.png')
 
-    detections = image_to_detections(img)
+    detections = image_to_detections(img, min_conf=0.5, overlapThresh=0.5)
 
-    roi_list = detections_to_roi_list(img, detections)
+    roi_list = detections_to_roi_list(img, detections, margin=15)
     results = ''
 
     img_copy = img.copy()
