@@ -1,3 +1,5 @@
+import cv2
+
 from src.tesseract.tesseract_functions import *
 from imutils.object_detection import non_max_suppression
 from src import RESOURCES_PATH
@@ -5,20 +7,26 @@ from src import RESOURCES_PATH
 _EAST_MIN_CONF = 0.9
 _EAST_LAYER_NAMES = ['feature_fusion/Conv_7/Sigmoid', 'feature_fusion/concat_3']
 _EAST_DETECTOR_DATASET = RESOURCES_PATH + '/Modelos/frozen_east_text_detection.pb'
-_EAST_BASE_HEIGHT, _EAST_BASE_WIGHT = 2560, 2560
+_EAST_BASE_SIZE = 32
+_EAST_ENLARGE_FACTOR = 5
 
 
 def image_to_detections(img, min_conf=_EAST_MIN_CONF):
+    img = enlarge(img, _EAST_ENLARGE_FACTOR)
+    img = convert_image_to_gray(img)
+    img = filter_color_otsu_threshold(img)
+    img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+
     img_height, img_wight, __ = img.shape
-
-    proportion_height = img_height / float(_EAST_BASE_HEIGHT)
-    proportion_wight = img_wight / float(_EAST_BASE_WIGHT)
-
-    img_resized = resize(img, _EAST_BASE_HEIGHT, _EAST_BASE_WIGHT)
+    pad_height = ((int(img_height / _EAST_BASE_SIZE) + 1) * _EAST_BASE_SIZE) - img_height
+    pad_wight = ((int(img_wight / _EAST_BASE_SIZE) + 1) * _EAST_BASE_SIZE) - img_wight
+    img = cv2.copyMakeBorder(img, 0, pad_height, 0, pad_wight, cv2.BORDER_CONSTANT, value=[255, 255, 255])
+    # show_image(img)
 
     neural_network = cv2.dnn.readNet(_EAST_DETECTOR_DATASET)
 
-    img_blob = cv2.dnn.blobFromImage(img_resized, 1.0, (_EAST_BASE_WIGHT, _EAST_BASE_HEIGHT), swapRB=True, crop=False)
+    img_height, img_wight, __ = img.shape
+    img_blob = cv2.dnn.blobFromImage(img, 1.0, (img_wight, img_height), swapRB=True, crop=False)
 
     neural_network.setInput(img_blob)
 
@@ -38,17 +46,19 @@ def image_to_detections(img, min_conf=_EAST_MIN_CONF):
                 trusts.append(scores[column])
                 boxes.append((start_x, start_y, end_x, end_y))
 
+    print('boxes: ', len(boxes))
     detections = non_max_suppression(np.array(boxes), probs=trusts)
-    return [(int(start_x * proportion_wight),
-             int(start_y * proportion_height),
-             int(end_x * proportion_wight),
-             int(end_y * proportion_height))
+    print('detections: ', len(detections))
+
+    return [(int(start_x / _EAST_ENLARGE_FACTOR),
+             int(start_y / _EAST_ENLARGE_FACTOR),
+             int(end_x / _EAST_ENLARGE_FACTOR),
+             int(end_y / _EAST_ENLARGE_FACTOR))
             for (start_x, start_y, end_x, end_y) in detections]
 
 
 def detections_to_roi_list(img, detections, margin=5):
-    img_copy = img.copy()
-    return [img_copy[start_y - margin:end_y + margin, start_x + margin:end_x + margin] for (start_x, start_y, end_x, end_y) in detections]
+    return [img[start_y - margin:end_y + margin, start_x + margin:end_x + margin] for (start_x, start_y, end_x, end_y) in detections]
 
 
 def geometric_data(geometry, y):

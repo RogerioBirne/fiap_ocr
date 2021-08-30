@@ -48,13 +48,11 @@ def resize(img, height, wight):
     return cv2.resize(img, (height, wight))
 
 
-def enlarge(img, percent):
-    factor = 1 + (percent/100)
+def enlarge(img, factor):
     return cv2.resize(img, None, fx=factor, fy=factor, interpolation=cv2.INTER_CUBIC)
 
 
-def reduce(img, percent):
-    factor = 1 - (percent/100)
+def reduce(img, factor):
     return cv2.resize(img, None, fx=factor, fy=factor, interpolation=cv2.INTER_AREA)
 
 
