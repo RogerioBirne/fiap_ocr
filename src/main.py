@@ -1,41 +1,17 @@
-from src.tesseract.tesseract_functions import *
-from src.east.east_functions import *
 from src import RESOURCES_PATH
-
-
-def tesseract_ocr():
-    img = read_file_as_bgr(RESOURCES_PATH + '/Imagens/fiscal_docs/example_2.png')
-    img = convert_image_to_gray(img)
-    img = filter_color_gaussian_adaptive_threshold(img)
-
-    results = convert_image_to_data(img, 'por')
-    print_ocr_on_image(img, results)
-
-
-def east_ocr():
-    img = read_file_as_bgr(RESOURCES_PATH + '/Imagens/fiscal_docs/example_2.png')
-
-    detections = image_to_detections(img, min_conf=0.5, overlapThresh=0.5)
-
-    roi_list = detections_to_roi_list(img, detections, margin=15)
-    results = ''
-
-    img_copy = img.copy()
-    for index in range(0, len(roi_list)):
-        roi = roi_list[index]
-        detection = detections[index]
-
-        if min(roi.shape[:2]) > 0:
-            # roi = convert_image_to_gray(roi)
-            # roi = filter_color_otsu_threshold(roi)
-
-            cv2.rectangle(img_copy, (detection[0], detection[1]), (detection[2], detection[3]), (0, 255, 0), 1)
-
-            # results += convert_image_to_string(roi, 'por')['text']
-
-    # print(results)
-    show_image(img_copy)
-
+from ocr.fiscal_ticket_ocr import FiscalTicketOcr
+from ocr.fiscal_ticket_pnl import FiscalTicketPnl
 
 if __name__ == '__main__':
-    east_ocr()
+    fiscal_ticket_ocr = FiscalTicketOcr(debug_model=True)
+    fiscal_ticket_pnl = FiscalTicketPnl()
+    fiscal_ticket = fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_01.jpg'.format(RESOURCES_PATH))
+    print(fiscal_ticket_pnl.extract_data(fiscal_ticket))
+    # fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_02.jpg'.format(RESOURCES_PATH))
+    # fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_03.png'.format(RESOURCES_PATH))
+    # fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_04.jpg'.format(RESOURCES_PATH))
+    # fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_05.jpg'.format(RESOURCES_PATH))
+    # fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_06.jpg'.format(RESOURCES_PATH))
+    # fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_07.jpg'.format(RESOURCES_PATH))
+    # fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_08.jpg'.format(RESOURCES_PATH))
+    # fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_09.jpg'.format(RESOURCES_PATH))
