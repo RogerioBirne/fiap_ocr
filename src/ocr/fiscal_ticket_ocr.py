@@ -44,7 +44,7 @@ class FiscalTicketOcr:
         # self.__show_image(img, 'Original image')
 
         img = self.__convert_image_perspective(img)
-        self.__show_image(img, 'After fix perspective')
+        # self.__show_image(img, 'After fix perspective')
 
         img = self.__enlarge(img, 2)
         img = self.__convert_image_to_gray(img)
@@ -52,7 +52,7 @@ class FiscalTicketOcr:
         img = self.__filter_color_otsu_threshold(img)
         if margin > 0:
             img = self.__remove_margin(img, margin=margin)
-        self.__show_image(img, 'Fiscal ticket right to OCR')
+        # self.__show_image(img, 'Fiscal ticket right to OCR')
 
         text = self.__convert_image_to_string(img)
         self.__log_debug(text)
