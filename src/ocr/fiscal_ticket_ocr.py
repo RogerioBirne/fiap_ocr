@@ -1,5 +1,8 @@
 import numpy as np
 import cv2
+from PIL import Image
+from PIL import ImageFont
+from PIL import ImageDraw
 import pytesseract
 from pytesseract import Output
 import imutils
@@ -13,9 +16,18 @@ __MIN_COLOR_VALUE__ = 0
 __MAX_COLOR_VALUE__ = 255
 
 __EAST_OVERLAP_THRESH__ = 0.5
+__EAST_DETECTOR_DATASET__ = '{}/model/frozen_east_text_detection.pb'.format(RESOURCES_PATH)
 __EAST_LAYER_NAMES__ = ['feature_fusion/Conv_7/Sigmoid', 'feature_fusion/concat_3']
 __EAST_BASE_SIZE__ = 32
-__EAST_ENLARGE_FACTOR__ = 3
+__EAST_ENLARGE_FACTOR__ = 2
+
+__COLOR_RED_RGB__ = (255, 0, 0)
+__COLOR_GREEN_RGB__ = (0, 255, 0)
+__COLOR_BLUE_RGB__ = (0, 0, 255)
+__COLOR_BLACK_RGB__ = (0, 0, 0)
+__COLOR_WHITE_RGB__ = (255, 255, 255)
+
+__CALIBRI_FONT__ = '{}/fonts/calibri.ttf'.format(RESOURCES_PATH)
 
 
 # This class can transform a fiscal ticket image in text using tesseract and opencv
@@ -32,8 +44,7 @@ class FiscalTicketOcr:
         tesseract_psm = '6'  # Assume a single uniform block of text.
         self.__tesseract_conf = '--tessdata-dir {} --psm {}'.format(tesseract_dic_path, tesseract_psm)
 
-        self.__east_detector_dataset = '{}/model/frozen_east_text_detection.pb'.format(RESOURCES_PATH)
-        self.neural_network = cv2.dnn.readNet(self.__east_detector_dataset)
+        self.neural_network = cv2.dnn.readNet(__EAST_DETECTOR_DATASET__)
 
     def convert_file_image_to_string(self, file, margin=0):
         self.__log_debug('start ocr from file {}'.format(file))
@@ -62,7 +73,7 @@ class FiscalTicketOcr:
         if self.__debug_model:
             print(message)
 
-    def __show_image(self, img, title):
+    def __show_image(self, img, title='image'):
         if self.__debug_model:
             cv2.imshow(title, img)  # Show image
             cv2.setWindowProperty(title, cv2.WND_PROP_TOPMOST, 1)
@@ -83,7 +94,10 @@ class FiscalTicketOcr:
 
     def __convert_image_to_canny_edge(self, img):
         img = self.__convert_image_to_gray(img)
-        img = self.__filter_blur_gaussian(img)
+        img = self.__filter_color_gaussian_adaptive_threshold(img)
+        for index in range(0, 30):
+            img = self.__filter_noise_erode(img, 4)
+            img = self.__filter_noise_dilate(img, 3)
         return self.__filter_canny_edge(img)
 
     @staticmethod
@@ -169,7 +183,8 @@ class FiscalTicketOcr:
 
     @staticmethod
     def __filter_canny_edge(img):
-        return cv2.Canny(img, 60, 160)
+        thresh, result = cv2.threshold(src=img, thresh=0, maxval=255, type=cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+        return cv2.Canny(img, thresh, 160)
 
     @staticmethod
     def __find_contours(img, sort_desc=True):
@@ -178,18 +193,20 @@ class FiscalTicketOcr:
         contours = sorted(contours, key=cv2.contourArea, reverse=sort_desc)[:6]
         return contours
 
-    @staticmethod
-    def __select_biggest_contour(contours):
-        for contour in contours:
+    def __select_biggest_contour(self, img_edge, img, contours):
+        self.__show_image(img_edge, 'img_edge')
+        for contour, index in zip(contours, range(0, len(contours))):
             perimeter = cv2.arcLength(contour, True)
             sides = cv2.approxPolyDP(contour, 0.02 * perimeter, True)
-            if len(sides) == 4:
+            print(len(sides), sides)
+
+            if len(sides) >= 4:
                 return sides
         return None
 
     @staticmethod
     def __sort_contour_points(contour):
-        points = contour.reshape((4, 2))
+        points = contour.reshape((len(contour), 2))
         sorted_points = np.zeros((4, 1, 2), dtype=np.int32)
 
         add = points.sum(1)
@@ -203,9 +220,18 @@ class FiscalTicketOcr:
         return sorted_points
 
     def __convert_image_perspective(self, img):
+        print('__convert_image_perspective begin-1')
         img_result = self.__convert_image_perspective_by_contours(img)
+        print('__convert_image_perspective begin-2')
 
         # detections = self.__image_to_detections(img_result)
+        #
+        # print('detections', len(detections))
+        # for (start_x, start_y, end_x, end_y) in detections:
+        #     img_result = self.__draw_box(img_result, (start_x, start_y), (end_x, end_y))
+        # self.__show_image(img_result, 'Fiscal ticket right to OCR')
+        # exit(0)
+        #
         # if len(detections) < 10:
         #     detections = self.__image_to_detections(img)
         #     img_result = self.__detections_to_roi(img, detections)
@@ -222,7 +248,7 @@ class FiscalTicketOcr:
         (height, wight) = img.shape[:2]
 
         contours = self.__find_contours(img_edge)
-        fiscal_ticket_contour = self.__select_biggest_contour(contours)
+        fiscal_ticket_contour = self.__select_biggest_contour(img_edge, img, contours)
         if fiscal_ticket_contour is not None:
             fiscal_ticket_contour = self.__sort_contour_points(fiscal_ticket_contour)
 
@@ -234,27 +260,36 @@ class FiscalTicketOcr:
         return img
 
     def __image_to_detections(self, img, overlap_thresh=__EAST_OVERLAP_THRESH__):
+        print('__image_to_detections pass-1')
         img = self.__enlarge(img, __EAST_ENLARGE_FACTOR__)
         img = self.__convert_image_to_gray(img)
         img = self.__filter_color_otsu_threshold(img)
         img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)  # Convert image to gray
+        self.__show_image(img)
 
+        print('__image_to_detections pass-2')
         img_height, img_wight = img.shape[:2]
         pad_height = ((int(img_height / __EAST_BASE_SIZE__) + 1) * __EAST_BASE_SIZE__) - img_height
         pad_wight = ((int(img_wight / __EAST_BASE_SIZE__) + 1) * __EAST_BASE_SIZE__) - img_wight
         img = cv2.copyMakeBorder(img, 0, pad_height, 0, pad_wight, cv2.BORDER_CONSTANT, value=[255, 255, 255])
+        print('__image_to_detections pass-3')
 
         img_height, img_wight = img.shape[:2]
         img_blob = cv2.dnn.blobFromImage(img, 1.0, (img_wight, img_height), swapRB=True, crop=False)
+        print('__image_to_detections pass-4')
 
         self.neural_network.setInput(img_blob)
+        print('__image_to_detections pass-5')
 
         scores_map, geometries = self.neural_network.forward(__EAST_LAYER_NAMES__)
+        print('__image_to_detections pass-6')
         lines, columns = scores_map.shape[2:4]
 
         boxes = []
         trusts = []
 
+        print('__image_to_detections pass-6', lines)
+        print('__image_to_detections pass-7', columns)
         for line in range(0, lines):
             scores = scores_map[0, 0, line]
             for column in range(0, columns):
@@ -318,6 +353,18 @@ class FiscalTicketOcr:
         start_y = int(end_y - height)
 
         return start_x, start_y, end_x, end_y
+
+    @staticmethod
+    def __draw_box(img, point_1, point_2, color=__COLOR_RED_RGB__):
+        return cv2.rectangle(img, point_1, point_2, color, 2)
+
+    @staticmethod
+    def __write_text(text, img, x, y, font, font_length=32):
+        image_font = ImageFont.truetype(font, font_length)
+        img_pil = Image.fromarray(img)
+        draw = ImageDraw.Draw(img_pil)
+        draw.text((x, y - font_length), text, font=image_font)
+        return np.array(img_pil)
 
     def __convert_image_to_string(self, img):
         return pytesseract.image_to_string(img,
