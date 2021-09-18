@@ -7,6 +7,8 @@ import pytesseract
 from pytesseract import Output
 import imutils
 from imutils.object_detection import non_max_suppression
+import math
+import sys
 from src import RESOURCES_PATH
 
 __DEFAULT_LANGUAGE__ = 'por'
@@ -205,17 +207,49 @@ class FiscalTicketOcr:
         return None
 
     @staticmethod
-    def __sort_contour_points(contour):
+    def __distance(pt1, pt2):
+        return math.sqrt(((pt1[0] - pt2[0]) ** 2) + ((pt1[1] - pt2[1]) ** 2))
+
+    @staticmethod
+    def __min_distance_point(target, points):
+        min_distance = sys.maxsize
+        min_distance_point = (0, 0)
+
+        for point in points:
+            distance = FiscalTicketOcr.__distance(target, point)
+            if distance < min_distance:
+                min_distance = distance
+                min_distance_point = point
+        return min_distance_point
+
+    def __sort_contour_points(self, img, contour):
+        img_height, img_wight = img.shape[:2]
+
+        left_up = (0, 0)
+        right_up = (img_wight, 0)
+        right_down = (img_wight, img_height)
+        left_down = (0, img_height)
+
         points = contour.reshape((len(contour), 2))
         sorted_points = np.zeros((4, 1, 2), dtype=np.int32)
 
-        add = points.sum(1)
-        sorted_points[0] = points[np.argmin(add)]
-        sorted_points[2] = points[np.argmax(add)]
+        sorted_points[0] = FiscalTicketOcr.__min_distance_point(left_up, points)
+        sorted_points[1] = FiscalTicketOcr.__min_distance_point(right_up, points)
+        sorted_points[2] = FiscalTicketOcr.__min_distance_point(right_down, points)
+        sorted_points[3] = FiscalTicketOcr.__min_distance_point(left_down, points)
 
-        diff = np.diff(points, axis=1)
-        sorted_points[1] = points[np.argmin(diff)]
-        sorted_points[3] = points[np.argmax(diff)]
+        print(img.shape)
+
+        print(sorted_points[0][0])
+        print(sorted_points[1][0])
+        print(sorted_points[2][0])
+        print(sorted_points[3][0])
+
+        img = self.__draw_point(img, sorted_points[0][0])
+        img = self.__draw_point(img, sorted_points[1][0])
+        img = self.__draw_point(img, sorted_points[2][0])
+        img = self.__draw_point(img, sorted_points[3][0])
+        self.__show_image(img, '__sort_contour_points')
 
         return sorted_points
 
@@ -250,7 +284,7 @@ class FiscalTicketOcr:
         contours = self.__find_contours(img_edge)
         fiscal_ticket_contour = self.__select_biggest_contour(img_edge, img, contours)
         if fiscal_ticket_contour is not None:
-            fiscal_ticket_contour = self.__sort_contour_points(fiscal_ticket_contour)
+            fiscal_ticket_contour = self.__sort_contour_points(img, fiscal_ticket_contour)
 
             pts1 = np.float32(fiscal_ticket_contour)
             pts2 = np.float32([[0, 0], [wight, 0], [wight, height], [0, height]])
@@ -355,8 +389,13 @@ class FiscalTicketOcr:
         return start_x, start_y, end_x, end_y
 
     @staticmethod
-    def __draw_box(img, point_1, point_2, color=__COLOR_RED_RGB__):
-        return cv2.rectangle(img, point_1, point_2, color, 2)
+    def __draw_point(img, point, color=__COLOR_RED_RGB__):
+        return cv2.circle(img, point, radius=0, color=color, thickness=20)
+
+
+    @staticmethod
+    def __draw_box(img, point_1, point_2, color=__COLOR_RED_RGB__, border_size=2):
+        return cv2.rectangle(img, pt1=point_1, pt2=point_2, color=color, thickness=border_size)
 
     @staticmethod
     def __write_text(text, img, x, y, font, font_length=32):
