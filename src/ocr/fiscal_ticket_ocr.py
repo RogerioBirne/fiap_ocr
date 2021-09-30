@@ -272,7 +272,7 @@ class FiscalTicketOcr:
             area = cv2.contourArea(c)
             ar = w / float(h)
             if len(approx) == 4 and area > 10000 and (ar > .85 and ar < 1.6) and w > 500 and h > 500:
-                cv2.rectangle(img, (x, y), (x + w, y + h), (255, 255, 255), cv2.FILLED)
+                cv2.rectangle(img, (x, y), (x + w, y + h), __COLOR_WHITE_RGB__, cv2.FILLED)
         return img
 
     def __convert_image_perspective(self, img):
