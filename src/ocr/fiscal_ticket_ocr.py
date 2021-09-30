@@ -6,9 +6,6 @@ from PIL import ImageDraw
 import pytesseract
 from pytesseract import Output
 import imutils
-from imutils.object_detection import non_max_suppression
-import math
-import sys
 from src import RESOURCES_PATH
 
 __DEFAULT_LANGUAGE__ = 'por'
@@ -28,8 +25,6 @@ __COLOR_GREEN_RGB__ = (0, 255, 0)
 __COLOR_BLUE_RGB__ = (0, 0, 255)
 __COLOR_BLACK_RGB__ = (0, 0, 0)
 __COLOR_WHITE_RGB__ = (255, 255, 255)
-
-__CALIBRI_FONT__ = '{}/fonts/calibri.ttf'.format(RESOURCES_PATH)
 
 
 # This class can transform a fiscal ticket image in text using tesseract and opencv
@@ -54,15 +49,23 @@ class FiscalTicketOcr:
         return self.convert_image_to_string(img, margin=margin)
 
     def convert_image_to_string(self, img, margin=0):
-        # self.__show_image(img, 'Original image')
-
         img = self.__convert_image_perspective(img)
-        self.__show_image(img, 'After fix perspective')
 
-        img = self.__enlarge(img, 2)
         img = self.__convert_image_to_gray(img)
         img = self.__filter_blur_gaussian(img)
-        img = self.__filter_color_otsu_threshold(img)
+        img = self.__filter_color_gaussian_adaptive_threshold(img)
+
+        img = self.__erase_qrcode(img)
+        img = self.__enlarge(img, 3)
+
+        img = self.__filter_noise_dilate(img)
+        for index in range(0, 100):
+            img = self.__filter_noise_dilate(img)
+            img = self.__filter_noise_erode(img)
+
+        for index in range(0, 5):
+            img = self.__filter_noise_erode(img)
+
         if margin > 0:
             img = self.__remove_margin(img, margin=margin)
         self.__show_image(img, 'Fiscal ticket right to OCR')
@@ -94,10 +97,33 @@ class FiscalTicketOcr:
     def __invert_gray_color(gray):
         return __MAX_COLOR_VALUE__ - gray
 
-    def __convert_image_to_canny_edge(self, img):
+    def __convert_image_to_canny_edge_to_qr(self, img):
         img = self.__convert_image_to_gray(img)
         img = self.__filter_color_gaussian_adaptive_threshold(img)
         for index in range(0, 30):
+            img = self.__filter_noise_closure(img, 3)
+        self.__show_image(img, 'filter')
+
+        # for index in range(1, 70):
+        #     self.__show_image(self.__filter_noise_erode(img, index), '{}'.format(index))
+
+        for index in range(0, 25):
+            img = self.__filter_noise_erode(img, 5)
+            img = self.__filter_noise_dilate(img, 3)
+            self.__show_image(img, '{}'.format(index))
+
+        # for loop in range(0, 5):
+        #
+        #     for index in range(0, 5):
+        #         img = self.__filter_noise_dilate(img, 3)
+        #         self.__show_image(img, '{}-{}'.format(loop, index))
+
+        return self.__filter_canny_edge(img)
+
+    def __convert_image_to_canny_edge(self, img):
+        img = self.__convert_image_to_gray(img)
+        img = self.__filter_color_gaussian_adaptive_threshold(img)
+        for index in range(0, 15):
             img = self.__filter_noise_erode(img, 4)
             img = self.__filter_noise_dilate(img, 3)
         return self.__filter_canny_edge(img)
@@ -185,8 +211,7 @@ class FiscalTicketOcr:
 
     @staticmethod
     def __filter_canny_edge(img):
-        thresh, result = cv2.threshold(src=img, thresh=0, maxval=255, type=cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-        return cv2.Canny(img, thresh, 160)
+        return cv2.Canny(img, 40, 160)
 
     @staticmethod
     def __find_contours(img, sort_desc=True):
@@ -195,96 +220,71 @@ class FiscalTicketOcr:
         contours = sorted(contours, key=cv2.contourArea, reverse=sort_desc)[:6]
         return contours
 
-    def __select_biggest_contour(self, img_edge, img, contours):
-        self.__show_image(img_edge, 'img_edge')
+    @staticmethod
+    def __select_biggest_contour(contours):
+        for contour, index in zip(contours, range(0, len(contours))):
+            perimeter = cv2.arcLength(contour, True)
+            sides = cv2.approxPolyDP(contour, 0.02 * perimeter, True)
+            if len(sides) >= 4:
+                return sides
+        return None
+
+    def __select_qr_contour(self, img, contours):
         for contour, index in zip(contours, range(0, len(contours))):
             perimeter = cv2.arcLength(contour, True)
             sides = cv2.approxPolyDP(contour, 0.02 * perimeter, True)
             print(len(sides), sides)
 
             if len(sides) >= 4:
+                img = self.__draw_point(img, sides[0][0])
+                img = self.__draw_point(img, sides[1][0])
+                img = self.__draw_point(img, sides[2][0])
+                img = self.__draw_point(img, sides[3][0])
+                self.__show_image(img, '__sort_contour_points')
                 return sides
         return None
 
     @staticmethod
-    def __distance(pt1, pt2):
-        return math.sqrt(((pt1[0] - pt2[0]) ** 2) + ((pt1[1] - pt2[1]) ** 2))
-
-    @staticmethod
-    def __min_distance_point(target, points):
-        min_distance = sys.maxsize
-        min_distance_point = (0, 0)
-
-        for point in points:
-            distance = FiscalTicketOcr.__distance(target, point)
-            if distance < min_distance:
-                min_distance = distance
-                min_distance_point = point
-        return min_distance_point
-
-    def __sort_contour_points(self, img, contour):
-        img_height, img_wight = img.shape[:2]
-
-        left_up = (0, 0)
-        right_up = (img_wight, 0)
-        right_down = (img_wight, img_height)
-        left_down = (0, img_height)
-
+    def __sort_contour_points(contour):
         points = contour.reshape((len(contour), 2))
         sorted_points = np.zeros((4, 1, 2), dtype=np.int32)
 
-        sorted_points[0] = FiscalTicketOcr.__min_distance_point(left_up, points)
-        sorted_points[1] = FiscalTicketOcr.__min_distance_point(right_up, points)
-        sorted_points[2] = FiscalTicketOcr.__min_distance_point(right_down, points)
-        sorted_points[3] = FiscalTicketOcr.__min_distance_point(left_down, points)
+        add = points.sum(1)
+        sorted_points[0] = points[np.argmin(add)]
+        sorted_points[2] = points[np.argmax(add)]
 
-        print(img.shape)
-
-        print(sorted_points[0][0])
-        print(sorted_points[1][0])
-        print(sorted_points[2][0])
-        print(sorted_points[3][0])
-
-        img = self.__draw_point(img, sorted_points[0][0])
-        img = self.__draw_point(img, sorted_points[1][0])
-        img = self.__draw_point(img, sorted_points[2][0])
-        img = self.__draw_point(img, sorted_points[3][0])
-        self.__show_image(img, '__sort_contour_points')
-
+        diff = np.diff(points, axis=1)
+        sorted_points[1] = points[np.argmin(diff)]
+        sorted_points[3] = points[np.argmax(diff)]
         return sorted_points
 
+    def __erase_qrcode(self, img):
+        invert = self.__invert_gray_color(img)
+
+        invert = self.__filter_noise_closure(invert, 53)
+        invert = self.__filter_noise_opening(invert, 21)
+
+        contours = self.__find_contours(invert)
+        for c in contours:
+            peri = cv2.arcLength(c, True)
+            approx = cv2.approxPolyDP(c, 0.06 * peri, True)
+            x, y, w, h = cv2.boundingRect(approx)
+            area = cv2.contourArea(c)
+            ar = w / float(h)
+            if len(approx) == 4 and area > 10000 and (ar > .85 and ar < 1.6) and w > 500 and h > 500:
+                cv2.rectangle(img, (x, y), (x + w, y + h), (255, 255, 255), cv2.FILLED)
+        return img
+
     def __convert_image_perspective(self, img):
-        print('__convert_image_perspective begin-1')
-        img_result = self.__convert_image_perspective_by_contours(img)
-        print('__convert_image_perspective begin-2')
-
-        # detections = self.__image_to_detections(img_result)
-        #
-        # print('detections', len(detections))
-        # for (start_x, start_y, end_x, end_y) in detections:
-        #     img_result = self.__draw_box(img_result, (start_x, start_y), (end_x, end_y))
-        # self.__show_image(img_result, 'Fiscal ticket right to OCR')
-        # exit(0)
-        #
-        # if len(detections) < 10:
-        #     detections = self.__image_to_detections(img)
-        #     img_result = self.__detections_to_roi(img, detections)
-        #     image_osd = pytesseract.image_to_osd(img)
-        #     print(image_osd)
-        #     exit(0)
-        #     #TODO: buscar uma forma otimizada para selecionar o maior roi
-
-        return img_result
-
-    def __convert_image_perspective_by_contours(self, img):
         img_edge = self.__convert_image_to_canny_edge(img)
 
         (height, wight) = img.shape[:2]
 
         contours = self.__find_contours(img_edge)
-        fiscal_ticket_contour = self.__select_biggest_contour(img_edge, img, contours)
+
+        fiscal_ticket_contour = self.__select_biggest_contour(contours)
         if fiscal_ticket_contour is not None:
-            fiscal_ticket_contour = self.__sort_contour_points(img, fiscal_ticket_contour)
+            fiscal_ticket_contour = self.__sort_contour_points(fiscal_ticket_contour)
 
             pts1 = np.float32(fiscal_ticket_contour)
             pts2 = np.float32([[0, 0], [wight, 0], [wight, height], [0, height]])
@@ -293,105 +293,9 @@ class FiscalTicketOcr:
             img = cv2.warpPerspective(img, perspective_transform_matrix, (wight, height))
         return img
 
-    def __image_to_detections(self, img, overlap_thresh=__EAST_OVERLAP_THRESH__):
-        print('__image_to_detections pass-1')
-        img = self.__enlarge(img, __EAST_ENLARGE_FACTOR__)
-        img = self.__convert_image_to_gray(img)
-        img = self.__filter_color_otsu_threshold(img)
-        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)  # Convert image to gray
-        self.__show_image(img)
-
-        print('__image_to_detections pass-2')
-        img_height, img_wight = img.shape[:2]
-        pad_height = ((int(img_height / __EAST_BASE_SIZE__) + 1) * __EAST_BASE_SIZE__) - img_height
-        pad_wight = ((int(img_wight / __EAST_BASE_SIZE__) + 1) * __EAST_BASE_SIZE__) - img_wight
-        img = cv2.copyMakeBorder(img, 0, pad_height, 0, pad_wight, cv2.BORDER_CONSTANT, value=[255, 255, 255])
-        print('__image_to_detections pass-3')
-
-        img_height, img_wight = img.shape[:2]
-        img_blob = cv2.dnn.blobFromImage(img, 1.0, (img_wight, img_height), swapRB=True, crop=False)
-        print('__image_to_detections pass-4')
-
-        self.neural_network.setInput(img_blob)
-        print('__image_to_detections pass-5')
-
-        scores_map, geometries = self.neural_network.forward(__EAST_LAYER_NAMES__)
-        print('__image_to_detections pass-6')
-        lines, columns = scores_map.shape[2:4]
-
-        boxes = []
-        trusts = []
-
-        print('__image_to_detections pass-6', lines)
-        print('__image_to_detections pass-7', columns)
-        for line in range(0, lines):
-            scores = scores_map[0, 0, line]
-            for column in range(0, columns):
-                if scores[column] >= self.__min_trust_level:
-                    angles, x_data_0, x_data_1, x_data_2, x_data_3 = self.__geometric_data(geometries, line)
-                    start_x, start_y, end_x, end_y = self.__geometric_calc(line, column, angles, x_data_0, x_data_1,
-                                                                           x_data_2, x_data_3)
-
-                    trusts.append(scores[column])
-                    boxes.append((start_x, start_y, end_x, end_y))
-
-        detections = non_max_suppression(np.array(boxes), probs=trusts, overlapThresh=overlap_thresh)
-        self.__log_debug('east detections: {}'.format(len(detections)))
-
-        return [(int(start_x / __EAST_ENLARGE_FACTOR__),
-                 int(start_y / __EAST_ENLARGE_FACTOR__),
-                 int(end_x / __EAST_ENLARGE_FACTOR__),
-                 int(end_y / __EAST_ENLARGE_FACTOR__))
-                for (start_x, start_y, end_x, end_y) in detections]
-
-    @staticmethod
-    def __detections_to_roi(img, detections, margin=5):
-        arr = np.array(detections)
-
-        img_height, img_wight = img.shape[:2]
-
-        min_start_x = min(arr[:, 0])
-        min_start_y = min(arr[:, 1])
-        max_end_x = max(arr[:, 2])
-        max_end_y = max(arr[:, 3])
-
-        min_start_x = max(0, min_start_x - margin)
-        min_start_y = max(0, min_start_y - margin)
-        max_end_x = min(img_wight, max_end_x + margin)
-        max_end_y = min(img_height, max_end_y + margin)
-
-        return img[min_start_y:max_end_y, min_start_x:max_end_x]
-
-    @staticmethod
-    def __geometric_data(geometry, y):
-        x_data_0 = geometry[0, 0, y]
-        x_data_1 = geometry[0, 1, y]
-        x_data_2 = geometry[0, 2, y]
-        x_data_3 = geometry[0, 3, y]
-        angles = geometry[0, 4, y]
-        return angles, x_data_0, x_data_1, x_data_2, x_data_3
-
-    @staticmethod
-    def __geometric_calc(line, column, angles, x_data_0, x_data_1, x_data_2, x_data_3):
-        (offset_x, offset_y) = (column * 4.0, line * 4.0)
-        angle = angles[column]
-        cos = np.cos(angle)
-        sin = np.sin(angle)
-        height = x_data_0[column] + x_data_2[column]
-        wight = x_data_1[column] + x_data_3[column]
-
-        end_x = int(offset_x + (cos * x_data_1[column]) + (sin * x_data_2[column]))
-        end_y = int(offset_y - (sin * x_data_1[column]) + (cos * x_data_2[column]))
-
-        start_x = int(end_x - wight)
-        start_y = int(end_y - height)
-
-        return start_x, start_y, end_x, end_y
-
     @staticmethod
     def __draw_point(img, point, color=__COLOR_RED_RGB__):
         return cv2.circle(img, point, radius=0, color=color, thickness=20)
-
 
     @staticmethod
     def __draw_box(img, point_1, point_2, color=__COLOR_RED_RGB__, border_size=2):
