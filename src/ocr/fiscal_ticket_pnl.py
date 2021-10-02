@@ -1,5 +1,5 @@
-import json
 import re
+from pycpfcnpj import cpfcnpj
 
 exampleText = """MONTEIRO BRAGA CONSULTORIA EBMPRESARIAL LTDA
 DEALERNET
@@ -8,7 +8,7 @@ R. ANDRÉ L. R. DAFONTE, 25/20 - SALA 601
 
 42.700-000 L. DEFREITAS - DA
 
-CNPI163.356.000/0001 -49
+CNPJ 88.876.957/0001-47
 
 TE :166994360-NO UFIDA
 
@@ -16,7 +16,7 @@ IM:3SENTO
 
 25/06/2012 14:36:29 — CCF:000002 C00:000005
 
-CNPJ/CPF consumiídor:111.111.111-11
+CNPJ/CPF consumidor:393.285.650-30
 
 NOME:URSO DA GATUCADA
 
@@ -53,6 +53,7 @@ array_regex_cpf = ["[0-9]{3}\.?[0-9]{3}\.?[0-9]{3}\-?[0-9]{2}"]
 array_regex_cnpj = ["[0-9]{2}\.?[0-9]{3}\.?[0-9]{3}\/?[0-9]{4}\-?[0-9]{2}"]
 array_regex_total = ["([Tt][Oo][Tt][Aa][Ll]).*([-+]?\d*\.?\d+|[-+]?\d+)"]
 array_regex_itens = [""]
+numbers_points = "0123456789.,"
 
 
 class FiscalTicketPnl:
@@ -81,7 +82,8 @@ class FiscalTicketPnl:
                 m = re.search(r, line)
                 if m:
                     value = m.group(0)
-                    return value
+                    if cpfcnpj.validate(value):
+                        return value
         return ""
 
     def extract_cnpj(self, array_text):
@@ -90,7 +92,8 @@ class FiscalTicketPnl:
                 m = re.search(r, line)
                 if m:
                     value = m.group(0)
-                    return value
+                    if cpfcnpj.validate(value):
+                        return value
         return ""
 
     def extract_total(self, array_text):
@@ -100,5 +103,12 @@ class FiscalTicketPnl:
                 if m:
                     value = m.group(0)
                     if index + 1 >= len(array_regex_total):
-                        return value
+                        return self.only_numbers_and_points(value)
         return ""
+
+    def only_numbers_and_points(self, text):
+        value = ""
+        for c in text:
+            if c in numbers_points:
+                value += c
+        return value
