@@ -7,9 +7,9 @@ if __name__ == '__main__':
     fiscal_ticket_ocr = FiscalTicketOcr(debug_model=True)
     fiscal_ticket_pnl = FiscalTicketPnl()
     fiscal_ticket = fiscal_ticket_ocr.convert_file_image_to_string(
-        '{}/images/example_10.jpg'.format(RESOURCES_PATH)).replace('\n', '')
+        '{}/images/example_01.jpg'.format(RESOURCES_PATH)).replace('\n', '')
 
-    with open('{}/images/example_10.txt'.format(RESOURCES_PATH), 'r') as file:
+    with open('{}/images/example_01.txt'.format(RESOURCES_PATH), 'r') as file:
         digit_text = file.read().replace('\n', '')
 
         distance = textdistance.hamming.distance(fiscal_ticket, digit_text)
