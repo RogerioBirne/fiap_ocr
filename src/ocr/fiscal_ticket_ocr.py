@@ -11,15 +11,8 @@ from src import RESOURCES_PATH
 
 __DEFAULT_LANGUAGE__ = 'por'
 __DEFAULT_DEBUG__ = False
-__DEFAULT_MIN_TRUST_LEVEL__ = 0.9
 __MIN_COLOR_VALUE__ = 0
 __MAX_COLOR_VALUE__ = 255
-
-__EAST_OVERLAP_THRESH__ = 0.5
-__EAST_DETECTOR_DATASET__ = '{}/model/frozen_east_text_detection.pb'.format(RESOURCES_PATH)
-__EAST_LAYER_NAMES__ = ['feature_fusion/Conv_7/Sigmoid', 'feature_fusion/concat_3']
-__EAST_BASE_SIZE__ = 32
-__EAST_ENLARGE_FACTOR__ = 2
 
 __COLOR_RED_RGB__ = (255, 0, 0)
 __COLOR_GREEN_RGB__ = (0, 255, 0)
@@ -32,17 +25,13 @@ __COLOR_WHITE_RGB__ = (255, 255, 255)
 class FiscalTicketOcr:
 
     def __init__(self, language=__DEFAULT_LANGUAGE__,
-                 min_trust_level=__DEFAULT_MIN_TRUST_LEVEL__,
                  debug_model=__DEFAULT_DEBUG__):
         self.__language = language
-        self.__min_trust_level = min_trust_level
         self.__debug_model = debug_model
 
         tesseract_dic_path = '{}/tessdata'.format(RESOURCES_PATH)
         tesseract_psm = '6'  # Assume a single uniform block of text.
         self.__tesseract_conf = '--tessdata-dir {} --psm {}'.format(tesseract_dic_path, tesseract_psm)
-
-        self.neural_network = cv2.dnn.readNet(__EAST_DETECTOR_DATASET__)
 
     def convert_file_image_to_string(self, file, margin=0):
         self.__log_debug('Start ocr from file {}'.format(file))
@@ -55,11 +44,10 @@ class FiscalTicketOcr:
         img = self.__convert_image_to_gray(img)
         img = self.__filter_color_gaussian_adaptive_threshold(img)
 
-        img = self.__erase_qrcode(img)
+        img = self.__erase_qrcode(img, margin=25)
 
         img = self.__filter_noise_closure(img)
-        for index in range(1):
-            img = self.__filter_noise_erode(img)
+        img = self.__filter_noise_erode(img)
 
         if margin > 0:
             img = self.__remove_margin(img, margin=margin)
@@ -231,11 +219,12 @@ class FiscalTicketOcr:
         sorted_points[3] = points[np.argmax(diff)]
         return sorted_points
 
-    def __erase_qrcode(self, img):
-        invert = self.__invert_gray_color(img)
-        invert = self.__filter_noise_closure(invert, 21)
+    @staticmethod
+    def __erase_qrcode(img, margin=0):
+        invert = FiscalTicketOcr.__invert_gray_color(img)
+        invert = FiscalTicketOcr.__filter_noise_closure(invert, 21)
 
-        contours = self.__find_contours(invert)
+        contours = FiscalTicketOcr.__find_contours(invert)
         for c in contours:
             peri = cv2.arcLength(c, True)
             approx = cv2.approxPolyDP(c, 0.06 * peri, True)
@@ -243,7 +232,8 @@ class FiscalTicketOcr:
             area = cv2.contourArea(c)
             ar = w / float(h)
             if len(approx) == 4 and area > 10000 and (0.85 < ar < 1.6) and w > 500 and h > 500:
-                cv2.rectangle(img, (x, y), (x + w, y + h), __COLOR_WHITE_RGB__, cv2.FILLED)
+                cv2.rectangle(img, (x - margin, y - margin), (x + w + margin, y + h + margin), __COLOR_WHITE_RGB__,
+                              cv2.FILLED)
         return img
 
     @staticmethod
@@ -284,7 +274,7 @@ class FiscalTicketOcr:
 
         (height, wight) = img.shape[:2]
         return FiscalTicketOcr.__resize(img, height, int((height // ratio_src) * perspective_factor))
-    
+
     @staticmethod
     def __draw_point(img, point, color=__COLOR_RED_RGB__):
         return cv2.circle(img, point, radius=0, color=color, thickness=20)
