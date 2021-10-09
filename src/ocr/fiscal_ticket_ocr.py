@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+import math
 from PIL import Image
 from PIL import ImageFont
 from PIL import ImageDraw
@@ -44,7 +45,7 @@ class FiscalTicketOcr:
         self.neural_network = cv2.dnn.readNet(__EAST_DETECTOR_DATASET__)
 
     def convert_file_image_to_string(self, file, margin=0):
-        self.__log_debug('start ocr from file {}'.format(file))
+        self.__log_debug('Start ocr from file {}'.format(file))
         img = self.__open_image_as_bgr(file)
         return self.convert_image_to_string(img, margin=margin)
 
@@ -52,18 +53,12 @@ class FiscalTicketOcr:
         img = self.__convert_image_perspective(img)
 
         img = self.__convert_image_to_gray(img)
-        img = self.__filter_blur_gaussian(img)
         img = self.__filter_color_gaussian_adaptive_threshold(img)
 
         img = self.__erase_qrcode(img)
-        img = self.__enlarge(img, 3)
 
-        img = self.__filter_noise_dilate(img)
-        for index in range(0, 100):
-            img = self.__filter_noise_dilate(img)
-            img = self.__filter_noise_erode(img)
-
-        for index in range(0, 5):
+        img = self.__filter_noise_closure(img)
+        for index in range(1):
             img = self.__filter_noise_erode(img)
 
         if margin > 0:
@@ -97,36 +92,14 @@ class FiscalTicketOcr:
     def __invert_gray_color(gray):
         return __MAX_COLOR_VALUE__ - gray
 
-    def __convert_image_to_canny_edge_to_qr(self, img):
-        img = self.__convert_image_to_gray(img)
-        img = self.__filter_color_gaussian_adaptive_threshold(img)
-        for index in range(0, 30):
-            img = self.__filter_noise_closure(img, 3)
-        self.__show_image(img, 'filter')
-
-        # for index in range(1, 70):
-        #     self.__show_image(self.__filter_noise_erode(img, index), '{}'.format(index))
-
-        for index in range(0, 25):
-            img = self.__filter_noise_erode(img, 5)
-            img = self.__filter_noise_dilate(img, 3)
-            self.__show_image(img, '{}'.format(index))
-
-        # for loop in range(0, 5):
-        #
-        #     for index in range(0, 5):
-        #         img = self.__filter_noise_dilate(img, 3)
-        #         self.__show_image(img, '{}-{}'.format(loop, index))
-
-        return self.__filter_canny_edge(img)
-
-    def __convert_image_to_canny_edge(self, img):
-        img = self.__convert_image_to_gray(img)
-        img = self.__filter_color_gaussian_adaptive_threshold(img)
+    @staticmethod
+    def __convert_image_to_canny_edge(img):
+        img = FiscalTicketOcr.__convert_image_to_gray(img)
+        img = FiscalTicketOcr.__filter_color_gaussian_adaptive_threshold(img)
         for index in range(0, 15):
-            img = self.__filter_noise_erode(img, 4)
-            img = self.__filter_noise_dilate(img, 3)
-        return self.__filter_canny_edge(img)
+            img = FiscalTicketOcr.__filter_noise_erode(img, 4)
+            img = FiscalTicketOcr.__filter_noise_dilate(img, 3)
+        return FiscalTicketOcr.__filter_canny_edge(img)
 
     @staticmethod
     def __filter_color_binary_threshold(img, thresh=__MIN_COLOR_VALUE__, max_val=__MAX_COLOR_VALUE__):
@@ -148,7 +121,7 @@ class FiscalTicketOcr:
                                      C=subtracted)
 
     @staticmethod
-    def __filter_color_gaussian_adaptive_threshold(img, block_size=11, subtracted=9):
+    def __filter_color_gaussian_adaptive_threshold(img, block_size=35, subtracted=9):
         return cv2.adaptiveThreshold(src=img,
                                      maxValue=__MAX_COLOR_VALUE__,
                                      adaptiveMethod=cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
@@ -260,9 +233,7 @@ class FiscalTicketOcr:
 
     def __erase_qrcode(self, img):
         invert = self.__invert_gray_color(img)
-
-        invert = self.__filter_noise_closure(invert, 53)
-        invert = self.__filter_noise_opening(invert, 21)
+        invert = self.__filter_noise_closure(invert, 21)
 
         contours = self.__find_contours(invert)
         for c in contours:
@@ -271,28 +242,49 @@ class FiscalTicketOcr:
             x, y, w, h = cv2.boundingRect(approx)
             area = cv2.contourArea(c)
             ar = w / float(h)
-            if len(approx) == 4 and area > 10000 and (ar > .85 and ar < 1.6) and w > 500 and h > 500:
+            if len(approx) == 4 and area > 10000 and (0.85 < ar < 1.6) and w > 500 and h > 500:
                 cv2.rectangle(img, (x, y), (x + w, y + h), __COLOR_WHITE_RGB__, cv2.FILLED)
         return img
 
-    def __convert_image_perspective(self, img):
-        img_edge = self.__convert_image_to_canny_edge(img)
+    @staticmethod
+    def __convert_image_perspective(img):
+        img_edge = FiscalTicketOcr.__convert_image_to_canny_edge(img)
 
         (height, wight) = img.shape[:2]
+        ratio_src = height / wight
 
-        contours = self.__find_contours(img_edge)
+        contours = FiscalTicketOcr.__find_contours(img_edge)
 
-        fiscal_ticket_contour = self.__select_biggest_contour(contours)
+        fiscal_ticket_contour = FiscalTicketOcr.__select_biggest_contour(contours)
         if fiscal_ticket_contour is not None:
-            fiscal_ticket_contour = self.__sort_contour_points(fiscal_ticket_contour)
-
+            fiscal_ticket_contour = FiscalTicketOcr.__sort_contour_points(fiscal_ticket_contour)
             pts1 = np.float32(fiscal_ticket_contour)
             pts2 = np.float32([[0, 0], [wight, 0], [wight, height], [0, height]])
 
             perspective_transform_matrix = cv2.getPerspectiveTransform(pts1, pts2)
             img = cv2.warpPerspective(img, perspective_transform_matrix, (wight, height))
+            img = FiscalTicketOcr.__fix_image_ratio(img, ratio_src, fiscal_ticket_contour)
         return img
 
+    @staticmethod
+    def __fix_image_ratio(img, ratio_src, fiscal_ticket_contour):
+        pt1 = fiscal_ticket_contour[0][0]
+        pt2 = fiscal_ticket_contour[1][0]
+        pt3 = fiscal_ticket_contour[2][0]
+        pt4 = fiscal_ticket_contour[3][0]
+
+        dist_x1 = math.sqrt((pt2[0] - pt1[0]) ** 2 + (pt2[1] - pt1[1]) ** 2)
+        dist_x2 = math.sqrt((pt3[0] - pt4[0]) ** 2 + (pt3[1] - pt4[1]) ** 2)
+        dist_x = (dist_x1 + dist_x2) / 2
+
+        dist_y1 = math.sqrt((pt4[0] - pt1[0]) ** 2 + (pt4[1] - pt1[1]) ** 2)
+        dist_y2 = math.sqrt((pt3[0] - pt2[0]) ** 2 + (pt3[1] - pt2[1]) ** 2)
+        dist_y = (dist_y1 + dist_y2) / 2
+        perspective_factor = dist_y / dist_x
+
+        (height, wight) = img.shape[:2]
+        return FiscalTicketOcr.__resize(img, height, int((height // ratio_src) * perspective_factor))
+    
     @staticmethod
     def __draw_point(img, point, color=__COLOR_RED_RGB__):
         return cv2.circle(img, point, radius=0, color=color, thickness=20)
