@@ -9,51 +9,45 @@ from src.ocr import fiscal_ticket_extractor
 from src.ocr import image_qr_code_eraser
 
 
-# This class can transform a fiscal ticket image in text using tesseract and opencv
-class FiscalTicketOcr:
+# This script can transform a fiscal ticket image in text using tesseract and opencv
+__TESSERACT_DIC_PATH__ = '{}/tessdata'.format(RESOURCES_PATH)
+__TESSERACT_PSM__ = '6'  # Assume a single uniform block of text.
+__TESSERACT_CONF__ = '--tessdata-dir {} --psm {}'.format(__TESSERACT_DIC_PATH__, __TESSERACT_PSM__)
 
-    def __init__(self, language=__DEFAULT_LANGUAGE__):
-        self.__language = language
 
-        tesseract_dic_path = '{}/tessdata'.format(RESOURCES_PATH)
-        tesseract_psm = '6'  # Assume a single uniform block of text.
-        self.__tesseract_conf = '--tessdata-dir {} --psm {}'.format(tesseract_dic_path, tesseract_psm)
+def convert_file_image_to_string(file, margin=0, language=__DEFAULT_LANGUAGE__, config=__TESSERACT_CONF__):
+    img = image.open_image_as_bgr(file)
+    return convert_image_to_string(img, margin=margin, language=language, config=config)
 
-    def convert_file_image_to_string(self, file, margin=0):
-        img = image.open_image_as_bgr(file)
-        return self.convert_image_to_string(img, margin=margin)
 
-    def convert_image_to_string(self, img, margin=0):
-        img = FiscalTicketOcr.__extract_fiscal_ticket_to_ocr(img, margin=margin)
-        image.show_image(img, 'Image right to Ocr')
+def convert_image_to_string(img, margin=0, language=__DEFAULT_LANGUAGE__, config=__TESSERACT_CONF__):
+    img = __extract_fiscal_ticket_to_ocr(img, margin=margin)
+    image.show_image(img, 'Image right to Ocr')
 
-        text = self.__convert_image_to_string(img)
-        print(text)
-        return text
+    text = __convert_image_to_string(img, language=language, config=config)
+    print(text)
+    return text
 
-    @staticmethod
-    def __extract_fiscal_ticket_to_ocr(img, margin=0):
-        img = fiscal_ticket_extractor.convert_image_perspective(img)
 
-        img = image_color_filter.image_to_gray(img)
-        img = image_color_filter.color_gaussian_adaptive_threshold(img)
+def __extract_fiscal_ticket_to_ocr(img, margin=0):
+    img = fiscal_ticket_extractor.convert_image_perspective(img)
 
-        img = image_qr_code_eraser.erase_qrcode(img, margin=25)
+    img = image_color_filter.image_to_gray(img)
+    img = image_color_filter.color_gaussian_adaptive_threshold(img)
 
-        img = image_noise_filter.noise_closure(img)
+    img = image_qr_code_eraser.erase_qrcode(img, margin=25)
 
-        if margin > 0:
-            img = image.remove_margin(img, margin=margin)
+    img = image_noise_filter.noise_closure(img)
 
-        return img
+    if margin > 0:
+        img = image.remove_margin(img, margin=margin)
 
-    def __convert_image_to_string(self, img):
-        return pytesseract.image_to_string(img,
-                                           lang=self.__language,
-                                           config=self.__tesseract_conf)
+    return img
 
-    def __convert_image_to_data(self, img):
-        return pytesseract.image_to_data(img,
-                                         lang=self.__language,
-                                         config=self.__tesseract_conf,
-                                         output_type=Output.DICT)
+
+def __convert_image_to_string(img, language=__DEFAULT_LANGUAGE__, config=__TESSERACT_CONF__):
+    return pytesseract.image_to_string(img, lang=language, config=config)
+
+
+def __convert_image_to_data(img, language=__DEFAULT_LANGUAGE__, config=__TESSERACT_CONF__):
+    return pytesseract.image_to_data(img, lang=language, config=config, output_type=Output.DICT)
