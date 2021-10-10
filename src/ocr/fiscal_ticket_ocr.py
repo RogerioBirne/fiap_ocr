@@ -2,12 +2,11 @@ import pytesseract
 from pytesseract import Output
 from src import RESOURCES_PATH
 from src.ocr import __DEFAULT_LANGUAGE__
-from src.ocr.image import Image
-from src.ocr.image_blur import ImageBlur
-from src.ocr.image_noise_filter import ImageNoiseFilter
-from src.ocr.image_color_filter import ImageColorFilter
-from src.ocr.fiscal_ticket_extractor import FiscalTicketExtractor
-from src.ocr.image_qr_code_eraser import ImageQrCodeEraser
+from src.ocr import image
+from src.ocr import image_noise_filter
+from src.ocr import image_color_filter
+from src.ocr import fiscal_ticket_extractor
+from src.ocr import image_qr_code_eraser
 
 
 # This class can transform a fiscal ticket image in text using tesseract and opencv
@@ -21,11 +20,12 @@ class FiscalTicketOcr:
         self.__tesseract_conf = '--tessdata-dir {} --psm {}'.format(tesseract_dic_path, tesseract_psm)
 
     def convert_file_image_to_string(self, file, margin=0):
-        img = Image.open_image_as_bgr(file)
+        img = image.open_image_as_bgr(file)
         return self.convert_image_to_string(img, margin=margin)
 
     def convert_image_to_string(self, img, margin=0):
         img = FiscalTicketOcr.__extract_fiscal_ticket_to_ocr(img, margin=margin)
+        image.show_image(img, 'Image right to Ocr')
 
         text = self.__convert_image_to_string(img)
         print(text)
@@ -33,18 +33,18 @@ class FiscalTicketOcr:
 
     @staticmethod
     def __extract_fiscal_ticket_to_ocr(img, margin=0):
-        img = FiscalTicketExtractor.convert_image_perspective(img)
+        img = fiscal_ticket_extractor.convert_image_perspective(img)
 
-        img = ImageColorFilter.image_to_gray(img)
-        img = ImageColorFilter.color_gaussian_adaptive_threshold(img)
+        img = image_color_filter.image_to_gray(img)
+        img = image_color_filter.color_gaussian_adaptive_threshold(img)
 
-        img = ImageQrCodeEraser.erase_qrcode(img, margin=25)
+        img = image_qr_code_eraser.erase_qrcode(img, margin=25)
 
-        img = ImageNoiseFilter.noise_closure(img)
-        img = ImageNoiseFilter.noise_erode(img)
+        img = image_noise_filter.noise_closure(img)
 
         if margin > 0:
-            img = Image.remove_margin(img, margin=margin)
+            img = image.remove_margin(img, margin=margin)
+
         return img
 
     def __convert_image_to_string(self, img):
