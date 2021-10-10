@@ -9,7 +9,7 @@ if __name__ == '__main__':
         '{}/images/example_11.jpg'.format(RESOURCES_PATH)).replace('\n', '')
 
     with open('{}/images/example_11.txt'.format(RESOURCES_PATH), 'r') as file:
-        digit_text = file.read().replace('\n', '')
+        digit_text = file.read().replace('\n', ' ').upper()
 
         distance = textdistance.hamming.distance(fiscal_ticket, digit_text)
         print('distance', distance)

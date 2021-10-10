@@ -1,13 +1,14 @@
 import pytesseract
 from pytesseract import Output
+import easyocr
 from src import RESOURCES_PATH
 from src.ocr import __DEFAULT_LANGUAGE__
 from src.ocr import image
+from src.ocr import image_blur
 from src.ocr import image_noise_filter
 from src.ocr import image_color_filter
 from src.ocr import fiscal_ticket_extractor
 from src.ocr import image_qr_code_eraser
-
 
 # This script can transform a fiscal ticket image in text using tesseract and opencv
 __TESSERACT_DIC_PATH__ = '{}/tessdata'.format(RESOURCES_PATH)
@@ -24,9 +25,9 @@ def convert_image_to_string(img, margin=0, language=__DEFAULT_LANGUAGE__, config
     img = __extract_fiscal_ticket_to_ocr(img, margin=margin)
     image.show_image(img, 'Image right to Ocr')
 
-    text = __convert_image_to_string(img, language=language, config=config)
-    print(text)
-    return text
+    text1 = __convert_image_to_string_by_tesseract(img, language=language, config=config)
+    print(text1)
+    return text1
 
 
 def __extract_fiscal_ticket_to_ocr(img, margin=0):
@@ -37,7 +38,10 @@ def __extract_fiscal_ticket_to_ocr(img, margin=0):
 
     img = image_qr_code_eraser.erase_qrcode(img, margin=25)
 
-    img = image_noise_filter.noise_closure(img)
+    for index in range(5):
+        img = image_noise_filter.noise_opening(img, 7)
+    img = image_blur.blur(img)
+    img = image_noise_filter.noise_erode(img)
 
     if margin > 0:
         img = image.remove_margin(img, margin=margin)
@@ -45,9 +49,23 @@ def __extract_fiscal_ticket_to_ocr(img, margin=0):
     return img
 
 
-def __convert_image_to_string(img, language=__DEFAULT_LANGUAGE__, config=__TESSERACT_CONF__):
-    return pytesseract.image_to_string(img, lang=language, config=config)
+def __convert_image_to_string_by_easy(img, language=__DEFAULT_LANGUAGE__):
+    languages = ['en']
+    if language == 'por':
+        languages.append('pt')
+    elif language != 'en':
+        languages.append(language)
+
+    reader = easyocr.Reader(languages)
+    result = reader.readtext(img)
+    return ' '.join(text for (pts, text, level) in result if level > 0.1).upper()
 
 
-def __convert_image_to_data(img, language=__DEFAULT_LANGUAGE__, config=__TESSERACT_CONF__):
-    return pytesseract.image_to_data(img, lang=language, config=config, output_type=Output.DICT)
+def __convert_image_to_string_by_tesseract(img, language=__DEFAULT_LANGUAGE__, config=__TESSERACT_CONF__):
+    return pytesseract.image_to_string(img, lang=language, config=config).replace('\n', ' ').upper()
+
+
+def __convert_image_to_string_by_tesseract_with_conf(img, min_conf, language=__DEFAULT_LANGUAGE__,
+                                                     config=__TESSERACT_CONF__):
+    data = pytesseract.image_to_data(img, lang=language, config=config, output_type=Output.DICT)
+    return ' '.join(text for (conf, text) in zip(data['conf'], data['text']) if int(conf) > min_conf).upper()
