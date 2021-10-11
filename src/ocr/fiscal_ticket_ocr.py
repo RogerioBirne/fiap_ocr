@@ -38,7 +38,7 @@ def __extract_fiscal_ticket_to_ocr(img, margin=0):
     img = image_color_filter.image_to_gray(img)
     img = image_color_filter.color_gaussian_adaptive_threshold(img)
 
-    img = image_qr_code_eraser.erase_qrcode(img, margin=25)
+    img = image_qr_code_eraser.erase_qrcode(img, margin=10)
 
     height = img.shape[0]
     if height > 3000:
