@@ -9,6 +9,7 @@ from src.ocr import image_noise_filter
 from src.ocr import image_color_filter
 from src.ocr import fiscal_ticket_extractor
 from src.ocr import image_qr_code_eraser
+from src.ocr import fiscal_ticket_text_filter
 
 # This script can transform a fiscal ticket image in text using tesseract and opencv
 __TESSERACT_DIC_PATH__ = '{}/tessdata'.format(RESOURCES_PATH)
@@ -25,9 +26,10 @@ def convert_image_to_string(img, margin=0, language=__DEFAULT_LANGUAGE__, config
     img = __extract_fiscal_ticket_to_ocr(img, margin=margin)
     image.show_image(img, 'Image right to Ocr')
 
-    text1 = __convert_image_to_string_by_tesseract(img, language=language, config=config)
-    print(text1)
-    return text1
+    text = __convert_image_to_string_by_tesseract(img, language=language, config=config)
+    text = fiscal_ticket_text_filter.filter_text(text)
+    print(text)
+    return text
 
 
 def __extract_fiscal_ticket_to_ocr(img, margin=0):
@@ -38,10 +40,14 @@ def __extract_fiscal_ticket_to_ocr(img, margin=0):
 
     img = image_qr_code_eraser.erase_qrcode(img, margin=25)
 
-    for index in range(5):
-        img = image_noise_filter.noise_opening(img, 7)
-    img = image_blur.blur(img)
-    img = image_noise_filter.noise_erode(img)
+    height = img.shape[0]
+    if height > 3000:
+        for __ in range(5):
+            img = image_noise_filter.noise_opening(img, 7)
+            img = image_blur.blur(img)
+        img = image_noise_filter.noise_erode(img)
+    else:
+        img = image_blur.blur(img)
 
     if margin > 0:
         img = image.remove_margin(img, margin=margin)
@@ -62,7 +68,7 @@ def __convert_image_to_string_by_easy(img, language=__DEFAULT_LANGUAGE__):
 
 
 def __convert_image_to_string_by_tesseract(img, language=__DEFAULT_LANGUAGE__, config=__TESSERACT_CONF__):
-    return pytesseract.image_to_string(img, lang=language, config=config).replace('\n', ' ').upper()
+    return pytesseract.image_to_string(img, lang=language, config=config).upper()
 
 
 def __convert_image_to_string_by_tesseract_with_conf(img, min_conf, language=__DEFAULT_LANGUAGE__,

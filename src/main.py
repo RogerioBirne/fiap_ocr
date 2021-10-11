@@ -1,18 +1,9 @@
-from src import RESOURCES_PATH
-from ocr import fiscal_ticket_ocr
-from ocr.fiscal_ticket_pnl import FiscalTicketPnl
+from src import test_ocr
 
 if __name__ == '__main__':
-    fiscal_ticket_pnl = FiscalTicketPnl()
-    # fiscal_ticket = fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_01.jpg'.format(RESOURCES_PATH))
-    # fiscal_ticket = fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_02.jpg'.format(RESOURCES_PATH))
-    # fiscal_ticket = fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_03.png'.format(RESOURCES_PATH))
-    # fiscal_ticket = fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_04.jpg'.format(RESOURCES_PATH))
-    # fiscal_ticket = fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_05.jpg'.format(RESOURCES_PATH))
-    # fiscal_ticket = fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_06.jpg'.format(RESOURCES_PATH))
-    # fiscal_ticket = fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_07.jpg'.format(RESOURCES_PATH))
-    # fiscal_ticket = fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_08.jpg'.format(RESOURCES_PATH))
-    # fiscal_ticket = fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_09.jpg'.format(RESOURCES_PATH))
-    fiscal_ticket = fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_10.jpg'.format(RESOURCES_PATH))
-    # fiscal_ticket = fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_11.jpg'.format(RESOURCES_PATH))
-    print(fiscal_ticket_pnl.extract_data(fiscal_ticket))
+    # fiscal_ticket = test_ocr.debug_ocr_with_accuracy('example_01.jpg', 'example_01.txt')
+    fiscal_ticket = test_ocr.debug_ocr_with_accuracy('example_02.jpg', 'example_02.txt')
+    # fiscal_ticket = test_ocr.debug_ocr_with_accuracy('example_03.jpg', 'example_03.txt')
+    # fiscal_ticket = test_ocr.debug_ocr_with_accuracy('example_04.jpg', 'example_04.txt')
+    # fiscal_ticket = test_ocr.debug_ocr_with_accuracy('example_05.jpg', 'example_05.txt')
+    # fiscal_ticket = test_ocr.debug_ocr_with_accuracy('example_06.jpg', 'example_06.txt')

@@ -42,5 +42,5 @@ def __fix_image_ratio(img, ratio_src, fiscal_ticket_contour):
     dist_y = (dist_y1 + dist_y2) / 2
     perspective_factor = dist_y / dist_x
 
-    (height, wight) = img.shape[:2]
+    height = img.shape[0]
     return image.resize(img, height, int((height // ratio_src) * perspective_factor))

@@ -8,6 +8,10 @@ from src.ocr import __COLOR_RED_RGB__
 
 # This script can work with images
 def show_image(img, title='image'):
+    (height, wight) = img.shape[:2]
+    print('image', title)
+    print('(height, wight)', (height, wight))
+    print('-----------------------------------')
     cv2.imshow(title, img)  # Show image
     cv2.setWindowProperty(title, cv2.WND_PROP_TOPMOST, 1)
     cv2.waitKey(0)  # wait for any press
