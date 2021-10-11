@@ -2,7 +2,7 @@ import pytesseract
 from pytesseract import Output
 import easyocr
 from src import RESOURCES_PATH
-from src.ocr import __DEFAULT_LANGUAGE__
+from src.ocr import __DEFAULT_LANGUAGE__, __DEFAULT_DEBUG__
 from src.ocr import image
 from src.ocr import image_blur
 from src.ocr import image_noise_filter
@@ -17,18 +17,22 @@ __TESSERACT_PSM__ = '6'  # Assume a single uniform block of text.
 __TESSERACT_CONF__ = '--tessdata-dir {} --psm {}'.format(__TESSERACT_DIC_PATH__, __TESSERACT_PSM__)
 
 
-def convert_file_image_to_string(file, margin=0, language=__DEFAULT_LANGUAGE__, config=__TESSERACT_CONF__):
+def convert_file_image_to_string(file, margin=0, language=__DEFAULT_LANGUAGE__, config=__TESSERACT_CONF__,
+                                 debug=__DEFAULT_DEBUG__):
     img = image.open_image_as_bgr(file)
-    return convert_image_to_string(img, margin=margin, language=language, config=config)
+    return convert_image_to_string(img, margin=margin, language=language, config=config, debug=debug)
 
 
-def convert_image_to_string(img, margin=0, language=__DEFAULT_LANGUAGE__, config=__TESSERACT_CONF__):
+def convert_image_to_string(img, margin=0, language=__DEFAULT_LANGUAGE__, config=__TESSERACT_CONF__,
+                            debug=__DEFAULT_DEBUG__):
     img = __extract_fiscal_ticket_to_ocr(img, margin=margin)
-    image.show_image(img, 'Image right to Ocr')
+    if debug is True:
+        image.show_image(img, 'Image right to Ocr')
 
     text = __convert_image_to_string_by_tesseract(img, language=language, config=config)
     text = fiscal_ticket_text_filter.filter_text(text)
-    print(text)
+    if debug is True:
+        print(text)
     return text
 
 
