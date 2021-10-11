@@ -27,6 +27,8 @@ def filter_text(text):
     text = text.replace('ITEMM', 'ITEM')
     text = text.replace('ITENM', 'ITEM')
     text = text.replace('ACRESCIHO', 'ACRESCIMO')
+    text = text.replace('HTTPS: ', 'HTTPS:')
+    text = text.replace('HTTP: ', 'HTTP:')
     text = text.replace('HTTPS://UWW.', 'HTTPS://WWW.')
     text = text.replace('HTTPS://WUW.', 'HTTPS://WWW.')
     text = text.replace('HTTPS://WWU.', 'HTTPS://WWW.')
