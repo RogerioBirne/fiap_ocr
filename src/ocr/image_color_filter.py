@@ -1,6 +1,7 @@
 import cv2
 from src.ocr import __MIN_COLOR_VALUE__, __MAX_COLOR_VALUE__
 from src.ocr import image_noise_filter
+from src.ocr import image
 
 
 # This script can filter image with color
@@ -10,15 +11,6 @@ def image_to_gray(img):
 
 def invert_gray_color(gray):
     return __MAX_COLOR_VALUE__ - gray
-
-
-def image_to_canny_edge(img):
-    img = image_to_gray(img)
-    img = color_gaussian_adaptive_threshold(img)
-    for index in range(0, 15):
-        img = image_noise_filter.noise_erode(img, 4)
-        img = image_noise_filter.noise_dilate(img, 3)
-    return cv2.Canny(img, 40, 160)
 
 
 def color_binary_threshold(img, thresh=__MIN_COLOR_VALUE__, max_val=__MAX_COLOR_VALUE__):
@@ -47,3 +39,12 @@ def color_gaussian_adaptive_threshold(img, block_size=35, subtracted=9):
                                  thresholdType=cv2.THRESH_BINARY,
                                  blockSize=block_size,
                                  C=subtracted)
+
+
+def image_to_canny_edge(img, color_threshold_filter=color_otsu_threshold):
+    img = image_to_gray(img)
+    img = color_threshold_filter(img)
+    for __ in range(15):
+        img = image_noise_filter.noise_erode(img, 4)
+        img = image_noise_filter.noise_dilate(img, 3)
+    return cv2.Canny(img, 40, 160)
