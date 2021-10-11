@@ -1,4 +1,4 @@
-__DEFAULT_LANGUAGE__ = 'por'
+__DEFAULT_LANGUAGE__ = 'por+eng'
 __DEFAULT_DEBUG__ = False
 __MIN_COLOR_VALUE__ = 0
 __MAX_COLOR_VALUE__ = 255
