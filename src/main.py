@@ -1,21 +1,34 @@
-import json
+from flask import Flask, flash, request, redirect, url_for, send_from_directory, jsonify
+from datetime import datetime
 
 from src import RESOURCES_PATH
-from ocr.fiscal_ticket_ocr import FiscalTicketOcr
-from ocr.fiscal_ticket_pnl import FiscalTicketPnl
+from src.ocr.fiscal_ticket_ocr import FiscalTicketOcr
+from src.ocr.fiscal_ticket_pnl import FiscalTicketPnl
 
-if __name__ == '__main__':
-    fiscal_ticket_ocr = FiscalTicketOcr(debug_model=True)
-    fiscal_ticket_pnl = FiscalTicketPnl()
-    # fiscal_ticket = fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_01.jpg'.format(RESOURCES_PATH))
-    # fiscal_ticket = fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_02.jpg'.format(RESOURCES_PATH))
-    # fiscal_ticket = fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_03.png'.format(RESOURCES_PATH))
-    # fiscal_ticket = fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_04.jpg'.format(RESOURCES_PATH))
-    # fiscal_ticket = fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_05.jpg'.format(RESOURCES_PATH))
-    # fiscal_ticket = fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_06.jpg'.format(RESOURCES_PATH))
-    # fiscal_ticket = fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_07.jpg'.format(RESOURCES_PATH))
-    # fiscal_ticket = fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_08.jpg'.format(RESOURCES_PATH))
-    # fiscal_ticket = fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_09.jpg'.format(RESOURCES_PATH))
-    fiscal_ticket = fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_10.jpg'.format(RESOURCES_PATH))
-    # fiscal_ticket = fiscal_ticket_ocr.convert_file_image_to_string('{}/images/example_11.jpg'.format(RESOURCES_PATH))
-    print(fiscal_ticket_pnl.extract_data(fiscal_ticket))
+app = Flask(__name__)
+
+ALLOWED_EXTENTIONS = {'.pdf', '.png', '.jpg', '.jpeg', '.txt'}
+
+
+def allowed_file(filename):
+    index = filename.find('.')
+    ext = filename[index:]
+    if ext in ALLOWED_EXTENTIONS:
+        return True
+    return False
+
+
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    file = request.files["file"]
+    if file and allowed_file(file.filename):
+        path = RESOURCES_PATH + datetime.now().strftime("%d-%m-%y-%H-%M-%S") + "_" + file.filename
+        file.save(path)
+        file.close()
+        fiscal_ticket_ocr = FiscalTicketOcr(debug_model=True)
+        fiscal_ticket_pnl = FiscalTicketPnl()
+        fiscal_ticket = fiscal_ticket_ocr.convert_file_image_to_string(path)
+        return fiscal_ticket_pnl.extract_data(fiscal_ticket)
+
+
+app.run()
