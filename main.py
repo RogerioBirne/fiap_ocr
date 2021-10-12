@@ -10,9 +10,6 @@ def upload_file():
     if validate_request(request):
         path = receive_file(request)
         text = fiscal_ticket_ocr.convert_file_image_to_string(path)
-        print("---------------")
-        print(text)
-        print("---------------")
         return fiscal_ticket_pnl.extract_data(text)
 
 

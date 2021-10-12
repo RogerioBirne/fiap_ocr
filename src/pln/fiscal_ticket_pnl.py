@@ -79,8 +79,6 @@ def extract_itens(array_text):
 
 def extract_total(array_text):
     for line in array_text:
-        if "TOTAL" in line:
-            print(line)
         for index, r in enumerate(array_regex_total):
             m = re.search(r, line)
             if m:
