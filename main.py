@@ -19,7 +19,7 @@ def validate_request(req):
 
 def receive_file(req):
     file = req.files["file"]
-    path = "resources/imagestest/" + datetime.now().strftime("%d-%m-%y-%H-%M-%S") + "_" + file.filename
+    path = "resources/images_received/" + datetime.now().strftime("%d-%m-%y-%H-%M-%S") + "_" + file.filename
     file.save(path)
     file.close()
     return path
