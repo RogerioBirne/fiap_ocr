@@ -1,11 +1,31 @@
-from src import test_ocr
+from flask import Flask, flash, request, redirect, url_for, send_from_directory, jsonify
+from datetime import datetime
+from src.ocr import fiscal_ticket_ocr
+from src.pln import fiscal_ticket_pnl
 
-if __name__ == '__main__':
-    debug = False
+app = Flask(__name__)
 
-    fiscal_ticket = test_ocr.debug_ocr_with_accuracy('example_02.jpg', 'example_02.txt', debug=debug)
-    fiscal_ticket = test_ocr.debug_ocr_with_accuracy('example_03.jpg', 'example_03.txt', debug=debug)
-    fiscal_ticket = test_ocr.debug_ocr_with_accuracy('example_04.jpg', 'example_04.txt', debug=debug)
-    fiscal_ticket = test_ocr.debug_ocr_with_accuracy('example_05.jpg', 'example_05.txt', debug=debug)
-    fiscal_ticket = test_ocr.debug_ocr_with_accuracy('example_06.jpg', 'example_06.txt', debug=debug)
-    fiscal_ticket = test_ocr.debug_ocr_with_accuracy('example_07.jpg', 'example_07.txt', debug=debug)
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    if validate_request(request):
+        path = receive_file(request)
+        text = fiscal_ticket_ocr.convert_file_image_to_string(path)
+        print("---------------")
+        print(text)
+        print("---------------")
+        return fiscal_ticket_pnl.extract_data(text)
+
+
+def validate_request(req):
+    return len(req.files) == 1 and req.files["file"] is not None
+
+
+def receive_file(req):
+    file = req.files["file"]
+    path = "resources/imagestest/" + datetime.now().strftime("%d-%m-%y-%H-%M-%S") + "_" + file.filename
+    file.save(path)
+    file.close()
+    return path
+
+
+app.run()
