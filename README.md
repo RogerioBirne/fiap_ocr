@@ -23,6 +23,9 @@ Create your virtual env:
 Start Python env:
 ```source venv/bin/activate```
 
+Update pip:
+```pip install --upgrade pip```
+
 Install if necessary the requirements
 ```pip install -r requirements.txt```
 
