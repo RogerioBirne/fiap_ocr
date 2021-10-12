@@ -1,7 +1,13 @@
 # fiap_ocr
 This repository contain the OCR project developed to pos graduated on FIAP
 
-## Instalation
+Team:
+ - Artur Dos Santos Martini: arturmartiniti@gmail.com
+ - Fernanda Lima Silva De Carli: decarli.fe@gmail.com
+ - Nicholas Costa Pedroso: nicholas.c.pedroso@gmail.com
+ - Rogerio Peixoto Birne: rogerio.birne@gmail.com
+
+## Installation
 
 This project was created using Pycharm Community.
 
@@ -11,8 +17,19 @@ You should install tesseract using the follow command:
 Install all idioms:
 ```brew install tesseract-lang```
 
-Start your virtual env:
-```./start_env.sh```
+Create your virtual env:
+```python3 -m venv venv```
+
+Start Python env:
+```source venv/bin/activate```
+
+Install if necessary the requirements
+```pip install -r requirements.txt```
 
 After install any python module run:
-```./save_env.sh```
+```pip freeze > requirements.txt```
+
+## Running
+
+Run main:
+```python main.py```
