@@ -1,6 +1,5 @@
 import pytesseract
 from pytesseract import Output
-import easyocr
 from src import RESOURCES_PATH
 from src.ocr import __DEFAULT_LANGUAGE__, __DEFAULT_DEBUG__
 from src.ocr import image
@@ -9,6 +8,7 @@ from src.ocr import image_noise_filter
 from src.ocr import image_color_filter
 from src.ocr import fiscal_ticket_extractor
 from src.ocr import image_qr_code_eraser
+from src.ocr import image_bar_code_eraser
 from src.ocr import fiscal_ticket_text_filter
 
 # This script can transform a fiscal ticket image in text using tesseract and opencv
@@ -43,6 +43,7 @@ def __extract_fiscal_ticket_to_ocr(img, margin=0):
     img = image_color_filter.color_gaussian_adaptive_threshold(img)
 
     img = image_qr_code_eraser.erase_qrcode(img, margin=10)
+    img = image_bar_code_eraser.erase_barcode(img)
 
     height = img.shape[0]
     if height > 3000:
