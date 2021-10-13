@@ -22,7 +22,6 @@ def filter_text(text):
         text = text.replace('\n—', '\n')
         text = text.replace('\n ', '\n')
 
-    text = text.replace('\n-', '\n')
     text = text.replace('VUL ITEM', 'VL ITEM')
     text = text.replace('ITEMM', 'ITEM')
     text = text.replace('ITENM', 'ITEM')
