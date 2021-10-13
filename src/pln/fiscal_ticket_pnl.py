@@ -16,11 +16,11 @@ __CNPJ_MAX_SIZE__ = 18
 
 
 def extract_data(text):
-    structured_text = structure_text(text)
-    return apply_extraction(structured_text)
+    structured_text = __structure_text(text)
+    return __apply_extraction(structured_text)
 
 
-def structure_text(text):
+def __structure_text(text):
     new_text = ''
     for line in text.split(__NEW_LINE__):
         if len(line) > 5:
@@ -31,17 +31,17 @@ def structure_text(text):
     return new_text
 
 
-def apply_extraction(text):
+def __apply_extraction(text):
     result = {}
     array_text = text.split(__NEW_LINE__)
-    result['customer'] = extract_cpf(array_text)
-    result['company'] = extract_cnpj(array_text)
-    result['items'] = extract_items(array_text)
-    result['total'] = extract_total(array_text)
+    result['customer'] = __extract_cpf(array_text)
+    result['company'] = __extract_cnpj(array_text)
+    result['items'] = __extract_items(array_text)
+    result['total'] = __extract_total(array_text)
     return result
 
 
-def extract_cpf(array_text):
+def __extract_cpf(array_text):
     for line in array_text:
         for regex in __ARRAY_REGEX_CPF__:
             matches = re.search(regex, line)
@@ -50,12 +50,12 @@ def extract_cpf(array_text):
                 if cpfcnpj.validate(value):
                     if __CPF_SIZE__ <= len(value) <= __CNPJ_MIN_SIZE__:
                         if len(value) == __CPF_SIZE__:
-                            return format_cpf(value)
+                            return __format_cpf(value)
                         return value
     return ''
 
 
-def extract_cnpj(array_text):
+def __extract_cnpj(array_text):
     for line in array_text:
         for regex in __ARRAY_REGEX_CNPJ__:
             matches = re.search(regex, line)
@@ -64,12 +64,12 @@ def extract_cnpj(array_text):
                 if cpfcnpj.validate(value):
                     if __CNPJ_MIN_SIZE__ <= len(value) <= __CNPJ_MAX_SIZE__:
                         if len(value) == __CNPJ_MIN_SIZE__:
-                            return format_cnpj(value)
+                            return __format_cnpj(value)
                         return value
     return ''
 
 
-def extract_items(array_text):
+def __extract_items(array_text):
     items = []
     for line in array_text:
         for regex in __ARRAY_REGEX_ITEMS__:
@@ -81,18 +81,18 @@ def extract_items(array_text):
     return items
 
 
-def extract_total(array_text):
+def __extract_total(array_text):
     for line in array_text:
         for index, regex in enumerate(__ARRAY_REGEX_TOTAL__):
             matches = re.search(regex, line)
             if matches:
                 value = matches.group(0)
                 if value != '':
-                    return only_numbers_and_points(value)
+                    return __only_numbers_and_points(value)
     return ''
 
 
-def only_numbers_and_points(text):
+def __only_numbers_and_points(text):
     value = ''
     for character in text:
         if character in __NUMBERS_POINTS__:
@@ -100,9 +100,9 @@ def only_numbers_and_points(text):
     return value
 
 
-def format_cnpj(cnpj):
+def __format_cnpj(cnpj):
     return '{}.{}.{}/{}-{}'.format(cnpj[:2], cnpj[2:5], cnpj[5:8], cnpj[8:12], cnpj[12:])
 
 
-def format_cpf(cpf):
+def __format_cpf(cpf):
     return '{}.{}.{}-{}'.format(cpf[:3], cpf[3:6], cpf[6:9], cpf[9:])
