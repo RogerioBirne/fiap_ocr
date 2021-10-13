@@ -31,6 +31,8 @@ def __convert_image_perspective(img, color_threshold_filter):
             img = __fix_image_ratio(img, ratio_src, fiscal_ticket_contour)
         elif color_threshold_filter != image_color_filter.color_gaussian_adaptive_threshold:
             return __convert_image_perspective(img, image_color_filter.color_gaussian_adaptive_threshold)
+    elif color_threshold_filter != image_color_filter.color_gaussian_adaptive_threshold:
+        return __convert_image_perspective(img, image_color_filter.color_gaussian_adaptive_threshold)
     return img
 
 
