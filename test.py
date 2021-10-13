@@ -1,7 +1,7 @@
 from src import test_ocr
 
 if __name__ == '__main__':
-    debug = True
+    debug = False
 
     fiscal_ticket = test_ocr.debug_ocr_with_accuracy('example_02.jpg', 'example_02.txt', debug=debug)
     fiscal_ticket = test_ocr.debug_ocr_with_accuracy('example_03.jpg', 'example_03.txt', debug=debug)

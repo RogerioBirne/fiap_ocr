@@ -14,9 +14,9 @@ def debug_ocr_with_accuracy(image_filename, text_filename, debug=True):
         print(fiscal_ticket)
         print('scanned image: [{}] and compare to: [{}]'.format(image_filename, text_filename))
 
-        distance = textdistance.hamming.distance(digit_text, fiscal_ticket)
+        distance = textdistance.damerau_levenshtein.distance(digit_text, fiscal_ticket)
         print('distance', distance)
 
-        normalized_similarity = textdistance.hamming.normalized_similarity(digit_text, fiscal_ticket)
+        normalized_similarity = textdistance.damerau_levenshtein.normalized_similarity(digit_text, fiscal_ticket)
         print('normalized_similarity', normalized_similarity)
     print('--------------------------------------------------')
