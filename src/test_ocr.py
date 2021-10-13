@@ -10,8 +10,6 @@ def debug_ocr_with_accuracy(image_filename, text_filename, debug=True):
 
     with open('{}/images/{}'.format(RESOURCES_PATH, text_filename), 'r') as file:
         digit_text = file.read()
-
-        print(fiscal_ticket)
         print('scanned image: [{}] and compare to: [{}]'.format(image_filename, text_filename))
 
         distance = textdistance.damerau_levenshtein.distance(digit_text, fiscal_ticket)
