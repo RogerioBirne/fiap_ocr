@@ -2,8 +2,13 @@ from flask import Flask, flash, request, redirect, url_for, send_from_directory,
 from datetime import datetime
 from src.ocr import fiscal_ticket_ocr
 from src.pln import fiscal_ticket_pnl
+from src import RESOURCES_PATH
+import os
+
+__IMAGES_RECEIVED_PATH__ = '{}/images_received'.format(RESOURCES_PATH)
 
 app = Flask(__name__)
+
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -14,15 +19,21 @@ def upload_file():
 
 
 def validate_request(req):
-    return len(req.files) == 1 and req.files["file"] is not None
+    return len(req.files) == 1 and req.files['file'] is not None
 
 
 def receive_file(req):
-    file = req.files["file"]
-    path = "resources/images_received/" + datetime.now().strftime("%d-%m-%y-%H-%M-%S") + "_" + file.filename
+    file = req.files['file']
+    if not os.path.exists(__IMAGES_RECEIVED_PATH__):
+        os.makedirs(__IMAGES_RECEIVED_PATH__)
+
+    now = datetime.now()
+    path = '{}/{}_{}'.format(__IMAGES_RECEIVED_PATH__, now.strftime('%d-%m-%y-%H-%M-%S'), file.filename)
+
     file.save(path)
     file.close()
     return path
 
 
-app.run()
+if __name__ == '__main__':
+    app.run()
