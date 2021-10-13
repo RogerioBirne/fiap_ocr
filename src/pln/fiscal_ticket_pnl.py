@@ -6,10 +6,14 @@ __ARRAY_REGEX_CNPJ__ = ['[0-9]{2}\.?[0-9]{3}\.?[0-9]{3}\/?[0-9]{4}\-?[0-9]{2}']
 __ARRAY_REGEX_TOTAL__ = ['([Tt][Oo][Tt][Aa][Ll]).*([R$]).*([-+]?\d*\.?\d+|[-+]?\d+)',
                          '([Vv][Aa][Ll][Oo][Rr]).*([R$]).*([-+]?\d*\.?\d+|[-+]?\d+)',
                          '([Pp][Aa][Gg][Aa][Rr]).*([R$]).*([-+]?\d*\.?\d+|[-+]?\d+)']
-__ARRAY_REGEX_ITEMS__ = ['([-+]?\d*\.?\d+|[-+]?\d+).*([Uu][Nn]).*([-+]?\d*\.?\d+|[-+]?\d+)']
+__ARRAY_REGEX_ITEMS__ = ['([-+]?\d*\.?\d+|[-+]?\d+).*([Uu][Nn]).*([-+]?\d*\.?\d+|[-+]?\d+)',
+                         '([-+]?\d*\.?\d+|[-+]?\d+).*([Uu][Nn])',
+                         '([-+]?\d*\.?\d+|[-+]?\d+).*([Kk][Gg]).*([-+]?\d*\.?\d+|[-+]?\d+)',
+                         '([-+]?\d*\.?\d+|[-+]?\d+).*([Kk][Gg])']
 __NUMBERS_POINTS__ = '0123456789.,'
 __NEW_LINE__ = '\n'
 __UNIT__ = 'UN'
+__KILOGRAM__ = 'KG'
 __CPF_SIZE__ = 11
 __CNPJ_MIN_SIZE__ = 14
 __CNPJ_MAX_SIZE__ = 18
@@ -24,7 +28,7 @@ def __structure_text(text):
     new_text = ''
     for line in text.split(__NEW_LINE__):
         if len(line) > 5:
-            if __UNIT__ in line[:5]:
+            if __UNIT__ in line[:5] or __KILOGRAM__ in line[:5]:
                 new_text = new_text[:len(new_text) - 2] + line + __NEW_LINE__
             else:
                 new_text = new_text + line + __NEW_LINE__
@@ -43,6 +47,11 @@ def __apply_extraction(text):
 
 def __extract_cpf(array_text):
     for line in array_text:
+        line = line.replace(' ', '')
+        line = line.replace('.', '')
+        line = line.replace(',', '')
+        line = line.replace('-', '')
+        line = line.replace('—', '')
         for regex in __ARRAY_REGEX_CPF__:
             matches = re.search(regex, line)
             if matches:
@@ -57,6 +66,12 @@ def __extract_cpf(array_text):
 
 def __extract_cnpj(array_text):
     for line in array_text:
+        line = line.replace(' ', '')
+        line = line.replace('.', '')
+        line = line.replace(',', '')
+        line = line.replace('-', '')
+        line = line.replace('—', '')
+        line = line.replace('/', '')
         for regex in __ARRAY_REGEX_CNPJ__:
             matches = re.search(regex, line)
             if matches:
@@ -72,13 +87,20 @@ def __extract_cnpj(array_text):
 def __extract_items(array_text):
     items = []
     for line in array_text:
-        for regex in __ARRAY_REGEX_ITEMS__:
-            matches = re.search(regex, line)
-            if matches:
-                value = matches.group(0)
-                if value != '':
-                    items.append(value)
+        item = __extract_item(line)
+        if item is not None:
+            items.append(item)
     return items
+
+
+def __extract_item(line):
+    for regex in __ARRAY_REGEX_ITEMS__:
+        matches = re.search(regex, line)
+        if matches:
+            value = matches.group(0)
+            if value != '':
+                return value
+    return None
 
 
 def __extract_total(array_text):
