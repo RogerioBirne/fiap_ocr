@@ -15,9 +15,10 @@ This project is a challenge for build an application that need to expose an inte
 - [x] extract data
 
 ## Architecture overview 
-- [x] API Rest
-- [x] OCR
-- [x] Regular Expression
+- [x] API Rest - Flask
+- [x] OCR - Tesseract
+- [x] Image treatment OpenCV
+- [x] Info extract - Regular Expression
 - [x] Documentation
 
 ## Problem and solution overview
